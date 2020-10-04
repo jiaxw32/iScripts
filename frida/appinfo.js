@@ -1,5 +1,6 @@
 Module.ensureInitialized("UIKit");
 Module.ensureInitialized("CoreGraphics");
+Module.ensureInitialized("AdSupport");
 
 var UIDevice = ObjC.classes.UIDevice;
 var currentDevice = UIDevice.currentDevice();
@@ -10,9 +11,10 @@ var mainScreen = UIScreen.mainScreen();
 var NSProcessInfo = ObjC.classes.NSProcessInfo;
 var processInfo = NSProcessInfo.processInfo();
 
+var ASIdentifierManager = ObjC.classes.ASIdentifierManager;
+
 var NSBundle = ObjC.classes.NSBundle;
 var mainBundle = NSBundle.mainBundle();
-var bundleInfo = mainBundle.infoDictionary();
 
 function bundleInfoForKey(key) {
   return mainBundle.infoDictionary().objectForKey_(key).toString();
@@ -36,6 +38,9 @@ rpc.exports = {
   },
   idfv: function () {
     return currentDevice.identifierForVendor().UUIDString().toString();
+  },
+  idfa: function(){
+    return ASIdentifierManager.sharedManager().advertisingIdentifier().UUIDString().toString();
   },
   batterylevel: function () {
     // Battery level ranges from 0.0 (fully discharged) to 1.0 (100% charged). Before accessing this property, ensure that battery monitoring is enabled.
@@ -64,16 +69,22 @@ rpc.exports = {
     return ret;
   },
   screenwidth: function () {
-    return mainScreen.bounds().size();
+    var bounds = mainScreen.bounds();
+    var size = bounds[1];
+    return size[0];
   },
   screenheight: function () {
-    return mainScreen.bounds().size.height;
+    var bounds = mainScreen.bounds(); //bounds is a CGRect struct
+    var size = bounds[1];
+    return size[1];
   },
-  screen_width_in_pixels: function () {
-    return mainScreen.currentMode().size().width();
+  screenwidthinpixels: function () {
+    var size = mainScreen.currentMode().size();
+    return size[0];
   },
-  screen_height_in_pixels: function () {
-    return mainScreen.currentMode().size().height();
+  screenheightinpixels: function () {
+    var size = mainScreen.currentMode().size();
+    return size[1];
   },
   scale: function () {
     return mainScreen.scale();
@@ -97,15 +108,15 @@ rpc.exports = {
     return bundleInfo.objectForKey_("CFBundleName").toString();
   },
   appname: function () {
-    return bundleInfo.objectForKey_("CFBundleDisplayName").toString();
+    return bundleInfoForKey("CFBundleDisplayName");
   },
   executablefile: function () {
-    return bundleInfo.objectForKey_("CFBundleExecutable").toString();
+    return bundleInfoForKey("CFBundleExecutable");
   },
   appshortversion: function () {
-    return bundleInfo.objectForKey_("CFBundleShortVersionString").toString();
+    return bundleInfoForKey("CFBundleShortVersionString");
   },
   appversion: function () {
-    return bundleInfo.objectForKey_("CFBundleVersion").toString();
-  }
+    return bundleInfoForKey("CFBundleVersion");
+  },
 };

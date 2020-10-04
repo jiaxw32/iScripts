@@ -21,10 +21,13 @@ deviceinfo["system_name"] = script.exports.systemname();
 deviceinfo["system_version"] = script.exports.systemversion();
 deviceinfo["system_model"] = script.exports.model();
 deviceinfo["system_localizemodel"] = script.exports.localizedmodel();
-deviceinfo["idfv"] = script.exports.idfv();
 deviceinfo["battery_level"] = script.exports.batterylevel();
 deviceinfo["battery_state"] = script.exports.batterystate();
-
+deviceinfo["idfa"] = script.exports.idfa();
+deviceinfo["screen_width"] = script.exports.screenwidth();
+deviceinfo["screen_height"] = script.exports.screenheight();
+deviceinfo["screen_width_in_pixels"] = script.exports.screenwidthinpixels();
+deviceinfo["screen_height_in_pixels"] = script.exports.screenheightinpixels();
 deviceinfo["scale"] = script.exports.scale();
 
 processInfo: dict = {}
@@ -33,10 +36,6 @@ processInfo["process_name"] = script.exports.processname();
 processInfo["processid"] = script.exports.processid();
 processInfo["osversion"] = script.exports.osversion();
 
-# deviceinfo["screen_width"] = script.exports.screenwidth();
-# deviceinfo["screen_height"] = script.exports.screenheight();
-# deviceinfo["screen_width_in_pixels"] = script.exports.screen_width_in_pixels();
-# deviceinfo["screen_height_in_pixels"] = script.exports.screen_height_in_pixels();
 
 appInfo: dict = {}
 appInfo["bundleid"] = script.exports.bundleid();
@@ -45,6 +44,7 @@ appInfo["bundlename"] = script.exports.bundlename();
 appInfo["executable_file"] = script.exports.executablefile();
 appInfo["app_version"] = script.exports.appversion();
 appInfo["app_short_version"] = script.exports.appshortversion();
+appInfo["idfv"] = script.exports.idfv();
 
 info: dict = {}
 info["app_info"] = appInfo

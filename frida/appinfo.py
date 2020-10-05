@@ -60,6 +60,8 @@ deviceinfo["screen_height"] = script.exports.screenheight();
 deviceinfo["screen_width_in_pixels"] = script.exports.screenwidthinpixels();
 deviceinfo["screen_height_in_pixels"] = script.exports.screenheightinpixels();
 deviceinfo["scale"] = script.exports.scale();
+deviceinfo["jailbroken"] = script.exports.isjailbroken();
+
 
 processInfo: dict = {}
 processInfo["host_name"] = script.exports.hostname();

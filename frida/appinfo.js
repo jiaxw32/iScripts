@@ -6,30 +6,40 @@ function exportFunction(type, name, ret, args) {
   var nptr;
   nptr = Module.findExportByName(null, name);
   if (nptr === null) {
-      console.log("cannot find " + name);
-      return null;
+    console.log("cannot find " + name);
+    return null;
   } else {
-      if (type === "f") {
-          var funclet = new NativeFunction(nptr, ret, args);
-          if (typeof funclet === "undefined") {
-              console.log("parse error " + name);
-              return null;
-          }
-          return funclet;
-      } else if (type === "d") {
-          var datalet = Memory.readPointer(nptr);
-          if (typeof datalet === "undefined") {
-              console.log("parse error " + name);
-              return null;
-          }
-          return datalet;
+    if (type === "f") {
+      var funclet = new NativeFunction(nptr, ret, args);
+      if (typeof funclet === "undefined") {
+        console.log("parse error " + name);
+        return null;
       }
+      return funclet;
+    } else if (type === "d") {
+      var datalet = Memory.readPointer(nptr);
+      if (typeof datalet === "undefined") {
+        console.log("parse error " + name);
+        return null;
+      }
+      return datalet;
+    }
   }
 }
 
-var NSSearchPathForDirectoriesInDomains = exportFunction("f", "NSSearchPathForDirectoriesInDomains", "pointer", ["int", "int", "int"]);
+var NSSearchPathForDirectoriesInDomains = exportFunction(
+  "f",
+  "NSSearchPathForDirectoriesInDomains",
+  "pointer",
+  ["int", "int", "int"]
+);
 var NSHomeDirectory = exportFunction("f", "NSHomeDirectory", "pointer", []);
-var NSTemporaryDirectory = exportFunction("f", "NSTemporaryDirectory", "pointer", []);
+var NSTemporaryDirectory = exportFunction(
+  "f",
+  "NSTemporaryDirectory",
+  "pointer",
+  []
+);
 var NSUserName = exportFunction("f", "NSUserName", "pointer", []);
 var NSFullUserName = exportFunction("f", "NSFullUserName", "pointer", []);
 
@@ -46,21 +56,33 @@ function fullUserName() {
 function documentDirectory() {
   var NSDocumentDirectory = 9;
   var NSUserDomainMask = 1;
-  var npdirs = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, 1);
+  var npdirs = NSSearchPathForDirectoriesInDomains(
+    NSDocumentDirectory,
+    NSUserDomainMask,
+    1
+  );
   return ObjC.Object(npdirs).objectAtIndex_(0).toString();
 }
 
 function libraryDirectory() {
   var NSLibraryDirectory = 5;
   var NSUserDomainMask = 1;
-  var npdirs = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, 1);
+  var npdirs = NSSearchPathForDirectoriesInDomains(
+    NSLibraryDirectory,
+    NSUserDomainMask,
+    1
+  );
   return ObjC.Object(npdirs).objectAtIndex_(0).toString();
 }
 
 function cachesDirectory() {
   var NSCachesDirectory = 13;
   var NSUserDomainMask = 1;
-  var npdirs = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, 1);
+  var npdirs = NSSearchPathForDirectoriesInDomains(
+    NSCachesDirectory,
+    NSUserDomainMask,
+    1
+  );
   return ObjC.Object(npdirs).objectAtIndex_(0).toString();
 }
 
@@ -88,11 +110,14 @@ var ASIdentifierManager = ObjC.classes.ASIdentifierManager;
 var NSBundle = ObjC.classes.NSBundle;
 var mainBundle = NSBundle.mainBundle();
 
+var NSFileManager = ObjC.classes.NSFileManager;
+var defaultFileManager = NSFileManager.defaultManager();
+
 function bundleInfoForKey(key) {
   return mainBundle.infoDictionary().objectForKey_(key).toString();
 }
 
-function deviceName(){
+function deviceName() {
   return currentDevice.name().toString();
 }
 
@@ -116,8 +141,11 @@ function identifierForVendor() {
   return currentDevice.identifierForVendor().UUIDString().toString();
 }
 
-function advertisingIdentifier(){
-  return ASIdentifierManager.sharedManager().advertisingIdentifier().UUIDString().toString();
+function advertisingIdentifier() {
+  return ASIdentifierManager.sharedManager()
+    .advertisingIdentifier()
+    .UUIDString()
+    .toString();
 }
 
 function batteryLevel() {
@@ -218,7 +246,7 @@ function executableFile() {
   return bundleInfoForKey("CFBundleExecutable");
 }
 
-function executablePath(){
+function executablePath() {
   return NSBundle.mainBundle().executablePath().toString();
 }
 
@@ -246,6 +274,24 @@ function getCookies() {
   return cookieJar;
 }
 
+function isJailbroken() {
+  var files = [
+    "/Applications/Cydia.app",
+    "/Library/MobileSubstrate/MobileSubstrate.dylib",
+    "/usr/bin/ssh",
+    "/etc/apt"
+  ];
+  var ret = false;
+  // files.forEach((element) => {
+  //   ret = ret || defaultFileManager.fileExistsAtPath_(element);
+  // });
+
+  files.forEach(function (element, index) {
+    ret = ret || defaultFileManager.fileExistsAtPath_(element);
+  });
+  return ret;
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -254,7 +300,7 @@ rpc.exports = {
   localizedmodel: localizedModel,
   idfv: identifierForVendor,
   idfa: advertisingIdentifier,
-  batterylevel: batteryLevel, 
+  batterylevel: batteryLevel,
   batterystate: batteryState,
   screenwidth: screenWidth,
   screenheight: screenHeight,
@@ -284,4 +330,5 @@ rpc.exports = {
   username: userName,
   fullusername: fullUserName,
   cookies: getCookies,
+  isjailbroken: isJailbroken,
 };

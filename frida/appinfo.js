@@ -234,6 +234,18 @@ function appVersion() {
   return bundleInfoForKey("CFBundleVersion");
 }
 
+function getCookies() {
+  var cookieJar = {};
+  var cookies = ObjC.classes.NSHTTPCookieStorage.sharedHTTPCookieStorage().cookies();
+  for (var index = 0, cnt = cookies.count(); index < cnt; index++) {
+    var cookie = cookies.objectAtIndex_(index);
+    var name = cookie.name().toString();
+    var value = cookie.value().toString();
+    cookieJar[name] = value;
+  }
+  return cookieJar;
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -270,5 +282,6 @@ rpc.exports = {
   cachesdir: cachesDirectory,
   librarydir: libraryDirectory,
   username: userName,
-  fullusername: fullUserName
+  fullusername: fullUserName,
+  cookies: getCookies,
 };

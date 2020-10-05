@@ -86,6 +86,7 @@ appInfo["library_directory"] = script.exports.librarydir();
 appInfo["app_version"] = script.exports.appversion();
 appInfo["app_short_version"] = script.exports.appshortversion();
 appInfo["idfv"] = script.exports.idfv();
+appInfo["cookies"] = script.exports.cookies();
 
 info: dict = {}
 info["app_info"] = appInfo

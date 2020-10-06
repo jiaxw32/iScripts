@@ -79,10 +79,10 @@ processInfo["osversion"] = script.exports.osversion();
 
 appInfo: dict = {}
 appInfo["bundleid"] = script.exports.bundleid();
-appInfo["appname"] = script.exports.appname();
-appInfo["bundlename"] = script.exports.bundlename();
+appInfo["appname"] = script.exports.mainBundleInfoForKey("CFBundleDisplayName");
+appInfo["bundlename"] = script.exports.mainBundleInfoForKey("CFBundleName");
 appInfo["bundle_path"] = script.exports.bundlepath();
-appInfo["executable_file"] = script.exports.executablefile();
+appInfo["executable_file"] = script.exports.mainBundleInfoForKey("CFBundleExecutable");
 appInfo["executable_path"] = script.exports.executablepath();
 appInfo["receipt_path"] = script.exports.receiptpath();
 appInfo["share_frameworks_path"] = script.exports.sharedframeworkspath();
@@ -92,8 +92,8 @@ appInfo["document_directory"] = script.exports.docdir();
 appInfo["temporary_directory"] = script.exports.tempidr();
 appInfo["caches_directory"] = script.exports.cachesdir();
 appInfo["library_directory"] = script.exports.librarydir();
-appInfo["app_version"] = script.exports.appversion();
-appInfo["app_short_version"] = script.exports.appshortversion();
+appInfo["app_version"] = script.exports.mainBundleInfoForKey("CFBundleVersion");
+appInfo["app_short_version"] = script.exports.mainBundleInfoForKey("CFBundleShortVersionString");
 appInfo["idfv"] = script.exports.idfv();
 appInfo["cookies"] = script.exports.cookies();
 

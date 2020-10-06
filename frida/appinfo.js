@@ -127,7 +127,7 @@ var mainBundle = NSBundle.mainBundle();
 var NSFileManager = ObjC.classes.NSFileManager;
 var defaultFileManager = NSFileManager.defaultManager();
 
-function bundleInfoForKey(key) {
+function mainBundleInfoForKey(key) {
   return mainBundle.infoDictionary().objectForKey_(key).toString();
 }
 
@@ -248,32 +248,12 @@ function privateFrameworksPath() {
   return mainBundle.privateFrameworksPath().toString();
 }
 
-function bundleName() {
-  return bundleInfoForKey("CFBundleName").toString();
-}
-
-function bundleDisplayName() {
-  return bundleInfoForKey("CFBundleDisplayName");
-}
-
-function executableFile() {
-  return bundleInfoForKey("CFBundleExecutable");
-}
-
 function executablePath() {
   return NSBundle.mainBundle().executablePath().toString();
 }
 
 function receiptPath() {
   return mainBundle.appStoreReceiptURL().path().toString();
-}
-
-function appShortVersion() {
-  return bundleInfoForKey("CFBundleShortVersionString");
-}
-
-function appVersion() {
-  return bundleInfoForKey("CFBundleVersion");
 }
 
 function getCookies() {
@@ -392,12 +372,7 @@ rpc.exports = {
   processid: processIdentifier,
   osversion: osVersionString,
   bundleid: bundleIdentifier,
-  bundlename: bundleName,
-  appname: bundleDisplayName,
-  executablefile: executableFile,
   executablepath: executablePath,
-  appshortversion: appShortVersion,
-  appversion: appVersion,
   sharedframeworkspath: sharedFrameworksPath,
   privateframeworkspath: privateFrameworksPath,
   bundlepath: bundlePath,
@@ -417,4 +392,5 @@ rpc.exports = {
   sysctluint64valuebyname: sysctlUInt64ValueByName,
   storagesize: storageSize,
   freesize: freeSize,
+  mainbundleinfoforkey: mainBundleInfoForKey,
 };

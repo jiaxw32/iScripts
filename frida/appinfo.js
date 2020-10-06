@@ -27,7 +27,13 @@ function exportFunction(type, name, ret, args) {
   }
 }
 
-var sysctlbyname = exportFunction("f", "sysctlbyname", "int", ["pointer", "pointer", "pointer", "pointer", "uint"])
+var sysctlbyname = exportFunction("f", "sysctlbyname", "int", [
+  "pointer",
+  "pointer",
+  "pointer",
+  "pointer",
+  "uint",
+]);
 
 var NSSearchPathForDirectoriesInDomains = exportFunction(
   "f",
@@ -93,15 +99,21 @@ function homeDirectory() {
   return ObjC.Object(dir).toString();
 }
 
-function storageSize(){
+function storageSize() {
   var homepath = NSHomeDirectory();
-  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(homepath, NULL);
+  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(
+    homepath,
+    NULL
+  );
   return attr.objectForKey_("NSFileSystemSize").unsignedLongLongValue();
 }
 
-function freeSize(){
+function freeSize() {
   var homepath = NSHomeDirectory();
-  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(homepath, NULL);
+  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(
+    homepath,
+    NULL
+  );
   return attr.objectForKey_("NSFileSystemFreeSize").unsignedLongLongValue();
 }
 
@@ -190,30 +202,23 @@ function batteryState() {
   return ret;
 }
 
-function screenWidth() {
-  var bounds = mainScreen.bounds();
-  var size = bounds[1];
-  return size[0];
-}
-
-function screenHeight() {
-  var bounds = mainScreen.bounds(); //bounds is a CGRect struct
-  var size = bounds[1];
-  return size[1];
-}
-
-function screenWidthInPixels() {
-  var size = mainScreen.currentMode().size();
-  return size[0];
-}
-
-function screenHeightInPixels() {
-  var size = mainScreen.currentMode().size();
-  return size[1];
-}
-
-function screenScale() {
-  return mainScreen.scale();
+function getScreenInfo() {
+  var screen = UIScreen.mainScreen();
+  var bounds = screen.bounds();
+  var size = bounds[1]; //bounds is a CGRect struct
+  var scale = screen.scale();
+  var brightness = screen.brightness();
+  // var nativeScale = screen.nativeScale();
+  // var currentModesize = screen.currentMode().size();
+  var nativeSize= screen.nativeBounds()[1];
+  return {
+    width_in_points: size[0],
+    height_in_points: size[1],
+    scale: scale,
+    width_in_pixels: nativeSize[0],
+    height_in_pixels: nativeSize[1],
+    brightness: brightness,
+  };
 }
 
 function hostName() {
@@ -273,7 +278,7 @@ function isJailbroken() {
     "/Applications/Cydia.app",
     "/Library/MobileSubstrate/MobileSubstrate.dylib",
     "/usr/bin/ssh",
-    "/etc/apt"
+    "/etc/apt",
   ];
   var ret = false;
   // files.forEach((element) => {
@@ -293,7 +298,11 @@ function sysctlStringValueByName(name) {
   var ret = sysctlbyname(cname, NULL, psize, NULL, 0);
   var sizevalue = Memory.readUInt(psize);
   if (ret != 0 || sizevalue == 0) {
-    send({errocode: ret, size: sizevalue, message: "call sysctlbyname to get target size failed."});
+    send({
+      errocode: ret,
+      size: sizevalue,
+      message: "call sysctlbyname to get target size failed.",
+    });
     return "";
   }
 
@@ -302,10 +311,12 @@ function sysctlStringValueByName(name) {
   if (ret == 0) {
     return pvalue.readUtf8String();
   } else {
-    send({errocode: ret, message: "call sysctlbyname to get target value failed."});
+    send({
+      errocode: ret,
+      message: "call sysctlbyname to get target value failed.",
+    });
   }
 }
-
 
 function sysctlInt32ValueByName(name) {
   var cname = Memory.allocUtf8String(name);
@@ -318,7 +329,10 @@ function sysctlInt32ValueByName(name) {
   if (ret == 0) {
     return pvalue.readS32();
   } else {
-    send({errocode: ret, message: "call sysctlInt32ValueByName to get target value failed."});
+    send({
+      errocode: ret,
+      message: "call sysctlInt32ValueByName to get target value failed.",
+    });
   }
 }
 
@@ -333,7 +347,10 @@ function sysctlInt64ValueByName(name) {
   if (ret == 0) {
     return pvalue.readS64();
   } else {
-    send({errocode: ret, message: "call sysctlInt64ValueByName to get target value failed."});
+    send({
+      errocode: ret,
+      message: "call sysctlInt64ValueByName to get target value failed.",
+    });
   }
 }
 
@@ -348,17 +365,24 @@ function sysctlUInt64ValueByName(name) {
   if (ret == 0) {
     return pvalue.readU64();
   } else {
-    send({errocode: ret, message: "call sysctlUInt64ValueByName to get target value failed."});
+    send({
+      errocode: ret,
+      message: "call sysctlUInt64ValueByName to get target value failed.",
+    });
   }
 }
 
-function getCarrierInfo(){
+function getCarrierInfo() {
   var ctinfo = ObjC.classes.CTTelephonyNetworkInfo.alloc().init();
   var carrier = ctinfo.subscriberCellularProvider();
   var name = carrier.carrierName().toString();
   var countryCode = carrier.mobileCountryCode().toString();
   var isoCountryCode = carrier.isoCountryCode().toString();
-  return {"carrier_name": name, "country_code": countryCode, "iso_country_code": isoCountryCode};
+  return {
+    carrier_name: name,
+    country_code: countryCode,
+    iso_country_code: isoCountryCode,
+  };
 }
 
 rpc.exports = {
@@ -371,11 +395,6 @@ rpc.exports = {
   idfa: advertisingIdentifier,
   batterylevel: batteryLevel,
   batterystate: batteryState,
-  screenwidth: screenWidth,
-  screenheight: screenHeight,
-  screenwidthinpixels: screenWidthInPixels,
-  screenheightinpixels: screenHeightInPixels,
-  scale: screenScale,
   hostname: hostName,
   processname: processName,
   processid: processIdentifier,
@@ -403,4 +422,5 @@ rpc.exports = {
   freesize: freeSize,
   mainbundleinfoforkey: mainBundleInfoForKey,
   carrierinfo: getCarrierInfo,
+  screeninfo: getScreenInfo,
 };

@@ -352,6 +352,15 @@ function sysctlUInt64ValueByName(name) {
   }
 }
 
+function getCarrierInfo(){
+  var ctinfo = ObjC.classes.CTTelephonyNetworkInfo.alloc().init();
+  var carrier = ctinfo.subscriberCellularProvider();
+  var name = carrier.carrierName().toString();
+  var countryCode = carrier.mobileCountryCode().toString();
+  var isoCountryCode = carrier.isoCountryCode().toString();
+  return {"carrier_name": name, "country_code": countryCode, "iso_country_code": isoCountryCode};
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -393,4 +402,5 @@ rpc.exports = {
   storagesize: storageSize,
   freesize: freeSize,
   mainbundleinfoforkey: mainBundleInfoForKey,
+  carrierinfo: getCarrierInfo,
 };

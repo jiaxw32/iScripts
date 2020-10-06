@@ -70,6 +70,8 @@ deviceinfo["hw.cpusubtype"] = script.exports.sysctlInt32ValueByName("hw.cpusubty
 deviceinfo["hw.memsize"] = script.exports.sysctluint64valuebyname("hw.memsize");
 deviceinfo["storage_size"] = script.exports.storagesize();
 deviceinfo["free_size"] = script.exports.freesize();
+carrierInfo = script.exports.carrierinfo(); # <class 'dict'>
+deviceinfo["carrier_info"] = carrierInfo;
 
 processInfo: dict = {}
 processInfo["host_name"] = script.exports.hostname();

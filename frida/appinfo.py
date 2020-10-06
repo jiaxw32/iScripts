@@ -61,14 +61,21 @@ deviceinfo["screen_width_in_pixels"] = script.exports.screenwidthinpixels();
 deviceinfo["screen_height_in_pixels"] = script.exports.screenheightinpixels();
 deviceinfo["scale"] = script.exports.scale();
 deviceinfo["jailbroken"] = script.exports.isjailbroken();
-
+deviceinfo["hw.model"] = script.exports.sysctlstringbyname("hw.model");
+deviceinfo["hw.machine"] = script.exports.sysctlstringbyname("hw.machine");
+deviceinfo["kern.version"] = script.exports.sysctlstringbyname("kern.version");
+deviceinfo["kern.osversion"] = script.exports.sysctlstringbyname("kern.osversion");
+deviceinfo["hw.cputype"] = script.exports.sysctlInt32ValueByName("hw.cputype");
+deviceinfo["hw.cpusubtype"] = script.exports.sysctlInt32ValueByName("hw.cpusubtype");
+deviceinfo["hw.memsize"] = script.exports.sysctluint64valuebyname("hw.memsize");
+deviceinfo["storage_size"] = script.exports.storagesize();
+deviceinfo["free_size"] = script.exports.freesize();
 
 processInfo: dict = {}
 processInfo["host_name"] = script.exports.hostname();
 processInfo["process_name"] = script.exports.processname();
 processInfo["processid"] = script.exports.processid();
 processInfo["osversion"] = script.exports.osversion();
-
 
 appInfo: dict = {}
 appInfo["bundleid"] = script.exports.bundleid();

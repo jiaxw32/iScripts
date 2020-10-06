@@ -27,6 +27,8 @@ function exportFunction(type, name, ret, args) {
   }
 }
 
+var sysctlbyname = exportFunction("f", "sysctlbyname", "int", ["pointer", "pointer", "pointer", "pointer", "uint"])
+
 var NSSearchPathForDirectoriesInDomains = exportFunction(
   "f",
   "NSSearchPathForDirectoriesInDomains",
@@ -89,6 +91,18 @@ function cachesDirectory() {
 function homeDirectory() {
   var dir = NSHomeDirectory();
   return ObjC.Object(dir).toString();
+}
+
+function storageSize(){
+  var homepath = NSHomeDirectory();
+  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(homepath, NULL);
+  return attr.objectForKey_("NSFileSystemSize").unsignedLongLongValue();
+}
+
+function freeSize(){
+  var homepath = NSHomeDirectory();
+  var attr = defaultFileManager.attributesOfFileSystemForPath_error_(homepath, NULL);
+  return attr.objectForKey_("NSFileSystemFreeSize").unsignedLongLongValue();
 }
 
 function temporaryDirectory() {
@@ -292,6 +306,72 @@ function isJailbroken() {
   return ret;
 }
 
+function sysctlStringValueByName(name) {
+  var cname = Memory.allocUtf8String(name);
+  var psize = Memory.alloc(8); // a size pointer
+  Memory.writeUInt(psize, 0); // the default size is equal to 0
+  var ret = sysctlbyname(cname, NULL, psize, NULL, 0);
+  var sizevalue = Memory.readUInt(psize);
+  if (ret != 0 || sizevalue == 0) {
+    send({errocode: ret, size: sizevalue, message: "call sysctlbyname to get target size failed."});
+    return "";
+  }
+
+  var pvalue = Memory.alloc(sizevalue);
+  ret = sysctlbyname(cname, pvalue, psize, NULL, 0);
+  if (ret == 0) {
+    return pvalue.readUtf8String();
+  } else {
+    send({errocode: ret, message: "call sysctlbyname to get target value failed."});
+  }
+}
+
+
+function sysctlInt32ValueByName(name) {
+  var cname = Memory.allocUtf8String(name);
+  var psize = Memory.alloc(4); // a int32 pointer
+  Memory.writeInt(psize, 4); // size value is equal to 4 bytes
+
+  var pvalue = Memory.alloc(4);
+  Memory.writeInt(pvalue, 0);
+  var ret = sysctlbyname(cname, pvalue, psize, NULL, 0);
+  if (ret == 0) {
+    return pvalue.readS32();
+  } else {
+    send({errocode: ret, message: "call sysctlInt32ValueByName to get target value failed."});
+  }
+}
+
+function sysctlInt64ValueByName(name) {
+  var cname = Memory.allocUtf8String(name);
+  var psize = Memory.alloc(8); // a int64 pointer
+  Memory.writeInt(psize, 8); // size value is equal to 8 bytes
+
+  var pvalue = Memory.alloc(8);
+  Memory.writeInt(pvalue, 0);
+  var ret = sysctlbyname(cname, pvalue, psize, NULL, 0);
+  if (ret == 0) {
+    return pvalue.readS64();
+  } else {
+    send({errocode: ret, message: "call sysctlInt64ValueByName to get target value failed."});
+  }
+}
+
+function sysctlUInt64ValueByName(name) {
+  var cname = Memory.allocUtf8String(name);
+  var psize = Memory.alloc(8); // a unsigned int64 pointer
+  Memory.writeInt(psize, 8); // the unsigned int64 size is equal to 8 bytes
+
+  var pvalue = Memory.alloc(8);
+  Memory.writeInt(pvalue, 0);
+  var ret = sysctlbyname(cname, pvalue, psize, NULL, 0);
+  if (ret == 0) {
+    return pvalue.readU64();
+  } else {
+    send({errocode: ret, message: "call sysctlUInt64ValueByName to get target value failed."});
+  }
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -331,4 +411,10 @@ rpc.exports = {
   fullusername: fullUserName,
   cookies: getCookies,
   isjailbroken: isJailbroken,
+  sysctlstringbyname: sysctlStringValueByName,
+  sysctlint32valuebyname: sysctlInt32ValueByName,
+  sysctlint64valuebyname: sysctlInt64ValueByName,
+  sysctluint64valuebyname: sysctlUInt64ValueByName,
+  storagesize: storageSize,
+  freesize: freeSize,
 };

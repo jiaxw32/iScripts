@@ -299,7 +299,7 @@ function sysctlStringValueByName(name) {
   var sizevalue = Memory.readUInt(psize);
   if (ret != 0 || sizevalue == 0) {
     send({
-      errocode: ret,
+      error_code: ret,
       size: sizevalue,
       message: "call sysctlbyname to get target size failed.",
     });
@@ -312,7 +312,7 @@ function sysctlStringValueByName(name) {
     return pvalue.readUtf8String();
   } else {
     send({
-      errocode: ret,
+      error_code: ret,
       message: "call sysctlbyname to get target value failed.",
     });
   }
@@ -330,7 +330,7 @@ function sysctlInt32ValueByName(name) {
     return pvalue.readS32();
   } else {
     send({
-      errocode: ret,
+      error_code: ret,
       message: "call sysctlInt32ValueByName to get target value failed.",
     });
   }
@@ -348,7 +348,7 @@ function sysctlInt64ValueByName(name) {
     return pvalue.readS64();
   } else {
     send({
-      errocode: ret,
+      error_code: ret,
       message: "call sysctlInt64ValueByName to get target value failed.",
     });
   }
@@ -366,7 +366,7 @@ function sysctlUInt64ValueByName(name) {
     return pvalue.readU64();
   } else {
     send({
-      errocode: ret,
+      error_code: ret,
       message: "call sysctlUInt64ValueByName to get target value failed.",
     });
   }

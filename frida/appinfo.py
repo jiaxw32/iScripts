@@ -1,3 +1,4 @@
+import sys
 import codecs
 import frida
 import json
@@ -34,14 +35,41 @@ def get_usb_iphone():
 
     return device
 
-device = get_usb_iphone()   
-pid = device.get_frontmost_application().pid
-session = device.attach(pid)
-with codecs.open('./appinfo.js', 'r', 'utf-8') as f:
-    source = f.read()
-script = session.create_script(source)
-script.on('message', on_message)
-script.load()
+def attach_application(device, bundleid = None):
+    application = device.get_frontmost_application()
+    if bundleid is None: 
+        if application is not None:
+            session = device.attach(application.pid)
+            return session
+        else:
+            print("get active application failed, please run application first.")
+            sys.exit(-1)
+    else:
+        if application is not None and application.identifier == bundleid:
+            session = device.attach(application.pid)
+            return session
+        else:
+            try:
+                pid = device.spawn([bundleid])
+                session = device.attach(pid)
+                device.resume(pid)
+                return session
+            except Exception as identifier:
+                print(f"faild to run application {bundleid}. {ex}")
+                sys.exit(-1)
+
+def load_script(session, filename):
+    with codecs.open(filename, 'r', 'utf-8') as f:
+        source = f.read()
+    script = session.create_script(source)
+    script.on('message', on_message)
+    script.load()
+    return script
+
+device = get_usb_iphone()
+# session = attach_application(device, "com.apple.TestFlight")
+session = attach_application(device)
+script = load_script(session, "./appinfo.js")
 
 deviceinfo: dict = {}
 deviceinfo["username"] = script.exports.username();

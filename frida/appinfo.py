@@ -36,7 +36,6 @@ def get_usb_iphone():
 
 device = get_usb_iphone()   
 pid = device.get_frontmost_application().pid
-print(f"proccess id: {pid}")
 session = device.attach(pid)
 with codecs.open('./appinfo.js', 'r', 'utf-8') as f:
     source = f.read()

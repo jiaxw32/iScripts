@@ -1,6 +1,6 @@
 Module.ensureInitialized("UIKit");
-Module.ensureInitialized("CoreGraphics");
-Module.ensureInitialized("AdSupport");
+// Module.ensureInitialized("CoreGraphics");
+// Module.ensureInitialized("AdSupport");
 
 function exportFunction(type, name, ret, args) {
   var nptr;
@@ -131,8 +131,6 @@ var mainScreen = UIScreen.mainScreen();
 var NSProcessInfo = ObjC.classes.NSProcessInfo;
 var processInfo = NSProcessInfo.processInfo();
 
-var ASIdentifierManager = ObjC.classes.ASIdentifierManager;
-
 var NSBundle = ObjC.classes.NSBundle;
 var mainBundle = NSBundle.mainBundle();
 
@@ -168,11 +166,18 @@ function identifierForVendor() {
 }
 
 function advertisingIdentifier() {
-  return ASIdentifierManager.sharedManager()
-    .advertisingIdentifier()
-    .UUIDString()
-    .toString();
+  if (ObjC.available && "ASIdentifierManager" in ObjC.classes) {
+    var ASIdentifierManager = ObjC.classes.ASIdentifierManager;
+    return ASIdentifierManager.sharedManager()
+      .advertisingIdentifier()
+      .UUIDString()
+      .toString();
+  } else {
+    send({message: "current app doesn't support AdSupport module."});
+    return "";
+  }
 }
+
 
 function batteryLevel() {
   // Battery level ranges from 0.0 (fully discharged) to 1.0 (100% charged). Before accessing this property, ensure that battery monitoring is enabled.

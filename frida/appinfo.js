@@ -46,6 +46,13 @@ var _dyld_get_image_header = exportFunction(
   ["uint"]
 );
 
+var _dyld_get_image_vmaddr_slide = exportFunction(
+  "f",
+  "_dyld_get_image_vmaddr_slide",
+  "long",
+  ["uint"]
+);
+
 var sysctlbyname = exportFunction("f", "sysctlbyname", "int", [
   "pointer",
   "pointer",
@@ -409,16 +416,19 @@ function getCarrierInfo() {
 
 function getAppModuleInfo() {
   var moduleInfo = [];
-  Process.enumerateModulesSync().forEach(function (image) {
+  Process.enumerateModulesSync().forEach(function (image, index) {
     if (
       image.path.indexOf(".app") != -1 /* ||
       image.path.indexOf("/Library/MobileSubstrate/") == 0 */
     ) {
+      var slide = _dyld_get_image_vmaddr_slide(index);
+      var hex_slide = "0x" + slide.toString(16);
       moduleInfo.push({
         name: image.name,
         path: image.path,
         baseaddr: image.base,
         size: image.size,
+        addr_slide: hex_slide
       });
     }
   });

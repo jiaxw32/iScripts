@@ -1,5 +1,12 @@
 Module.ensureInitialized("UIKit");
 
+function getU32(addr) {
+  if (typeof addr == "number") {
+      addr = ptr(addr);
+  }
+  return Memory.readU32(addr);
+}
+
 function exportFunction(type, name, ret, args) {
   var nptr;
   nptr = Module.findExportByName(null, name);
@@ -25,6 +32,8 @@ function exportFunction(type, name, ret, args) {
   }
 }
 
+var _dyld_get_image_header = exportFunction("f", "_dyld_get_image_header", "pointer", ["uint"]);
+
 var sysctlbyname = exportFunction("f", "sysctlbyname", "int", [
   "pointer",
   "pointer",
@@ -49,14 +58,11 @@ var NSTemporaryDirectory = exportFunction(
 var NSUserName = exportFunction("f", "NSUserName", "pointer", []);
 var NSFullUserName = exportFunction("f", "NSFullUserName", "pointer", []);
 
-function userName() {
-  var dir = NSUserName();
-  return ObjC.Object(dir).toString();
-}
-
 function fullUserName() {
-  var dir = NSFullUserName();
-  return ObjC.Object(dir).toString();
+  return {
+    username: ObjC.Object(NSUserName()).toString(),
+    fullusername: ObjC.Object(NSFullUserName()).toString()
+  };
 }
 
 function documentDirectory() {
@@ -124,7 +130,6 @@ var UIDevice = ObjC.classes.UIDevice;
 var currentDevice = UIDevice.currentDevice();
 
 var UIScreen = ObjC.classes.UIScreen;
-var mainScreen = UIScreen.mainScreen();
 
 var NSBundle = ObjC.classes.NSBundle;
 var mainBundle = NSBundle.mainBundle();
@@ -181,7 +186,7 @@ function batteryLevel() {
 }
 
 function batteryState() {
-  var state = currentDevice.batteryState().toNumber();
+  var state = currentDevice.batteryState().valueOf();
   // console.log("battery state: " + state + typeof state);
   var ret = "unknown";
   switch (state) {
@@ -259,13 +264,20 @@ function getAppPathInfo() {
 
 
 function getCookies() {
-  var cookieJar = {};
+  var cookieJar = [];
   var cookies = ObjC.classes.NSHTTPCookieStorage.sharedHTTPCookieStorage().cookies();
   for (var index = 0, cnt = cookies.count(); index < cnt; index++) {
     var cookie = cookies.objectAtIndex_(index);
-    var name = cookie.name().toString();
-    var value = cookie.value().toString();
-    cookieJar[name] = value;
+    cookieJar.push({
+      domain: cookie.domain().toString(),
+      expiresDate: cookie.expiresDate() ? cookie.expiresDate().toString() : "null",
+      isHTTPOnly: cookie.isHTTPOnly().toString(),
+      isSecure: cookie.isSecure().toString(),
+      name: cookie.name().toString(),
+      path: cookie.path().toString(),
+      value: cookie.value().toString(),
+      version: cookie.version().toString(),
+    });
   }
   return cookieJar;
 }
@@ -398,6 +410,43 @@ function getAppModuleInfo() {
   return moduleInfo;
 }
 
+function getAllBundleInfo(type) {
+  var frameworks;
+  if (type == 0) {
+    frameworks = ObjC.classes.NSBundle.allBundles();
+  } else {
+    frameworks = ObjC.classes.NSBundle.allFrameworks();
+  }
+  var appBundles = [];
+  for (var i = 0; i < frameworks.count().valueOf(); i++) {
+    var bundle = frameworks.objectAtIndex_(i);
+    var bundleInfo = bundle.infoDictionary();
+    var bundleIdentifier = bundleInfo.objectForKey_("CFBundleIdentifier");
+    var bundleVersion = bundleInfo.objectForKey_("CFBundleShortVersionString");
+    var bundleExecutable = bundleInfo.objectForKey_("CFBundleExecutable");
+    appBundles.push({
+      path: bundle.bundlePath().toString(),
+      id: bundleIdentifier ? bundleIdentifier.toString() : null,
+      version: bundleVersion ? bundleVersion.toString() : null,
+      executable: bundleExecutable ? bundleExecutable.toString() : null
+    });
+  }
+  return appBundles;
+}
+
+function getMachOInfo() {
+  var machHeader = _dyld_get_image_header(0);
+  console.log(machHeader.constructor.name, getAnyClass(machHeader));
+  var magic = getU32(machHeader);
+  var cputype = getU32(machHeader.add(4));
+  var cpusubtype = getU32(machHeader.add(8));
+  var filetype = getU32(machHeader.add(12));
+  var ncmds = getU32(machHeader.add(16));
+  var sizeofcmds = getU32(machHeader.add(20));
+  
+  console.log(magic, cputype, cpusubtype, filetype, ncmds, sizeofcmds);
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -409,8 +458,6 @@ rpc.exports = {
   batterylevel: batteryLevel,
   batterystate: batteryState,
   bundleid: bundleIdentifier,
-  username: userName,
-  fullusername: fullUserName,
   isjailbroken: isJailbroken,
   sysctlstringbyname: sysctlStringValueByName,
   sysctlint32valuebyname: sysctlInt32ValueByName,
@@ -425,4 +472,6 @@ rpc.exports = {
   apppathinfo: getAppPathInfo,
   processinfo: getProcessInfo,
   cookies: getCookies,
+  allbundleinfo: getAllBundleInfo,
+  machoinfo: getMachOInfo,
 };

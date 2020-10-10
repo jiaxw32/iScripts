@@ -42,7 +42,7 @@ def attach_application(device, bundleid = None):
             session = device.attach(application.pid)
             return session
         else:
-            print("get active application failed, please run application first.")
+            print("get the active application failed, please run an application first.")
             sys.exit(-1)
     else:
         if application is not None and application.identifier == bundleid:
@@ -72,8 +72,6 @@ session = attach_application(device)
 script = load_script(session, "./appinfo.js")
 
 deviceinfo: dict = {}
-deviceinfo["username"] = script.exports.username()
-deviceinfo["fullusername"] = script.exports.fullusername()
 deviceinfo["device_name"] = script.exports.devicename()
 deviceinfo["system_name"] = script.exports.systemname()
 deviceinfo["system_version"] = script.exports.systemversion()
@@ -106,6 +104,7 @@ appInfo["idfv"] = script.exports.idfv()
 appInfo["cookies"] = script.exports.cookies()
 appInfo["app_module"] = script.exports.moduleinfo()
 appInfo["app_path"] = script.exports.apppathinfo()
+# appInfo["allbundle"] = script.exports.allbundleinfo(0)
 
 processInfo = script.exports.processinfo()
 
@@ -116,5 +115,7 @@ info["device_info"] = deviceinfo
 
 strAppInfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
 print(strAppInfo)
+
+script.exports.machoinfo()
 
 session.detach()

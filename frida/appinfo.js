@@ -1,6 +1,4 @@
 Module.ensureInitialized("UIKit");
-// Module.ensureInitialized("CoreGraphics");
-// Module.ensureInitialized("AdSupport");
 
 function exportFunction(type, name, ret, args) {
   var nptr;
@@ -99,6 +97,11 @@ function homeDirectory() {
   return ObjC.Object(dir).toString();
 }
 
+function temporaryDirectory() {
+  var dir = NSTemporaryDirectory();
+  return ObjC.Object(dir).toString();
+}
+
 function storageSize() {
   var homepath = NSHomeDirectory();
   var attr = defaultFileManager.attributesOfFileSystemForPath_error_(
@@ -117,19 +120,11 @@ function freeSize() {
   return attr.objectForKey_("NSFileSystemFreeSize").unsignedLongLongValue();
 }
 
-function temporaryDirectory() {
-  var dir = NSTemporaryDirectory();
-  return ObjC.Object(dir).toString();
-}
-
 var UIDevice = ObjC.classes.UIDevice;
 var currentDevice = UIDevice.currentDevice();
 
 var UIScreen = ObjC.classes.UIScreen;
 var mainScreen = UIScreen.mainScreen();
-
-var NSProcessInfo = ObjC.classes.NSProcessInfo;
-var processInfo = NSProcessInfo.processInfo();
 
 var NSBundle = ObjC.classes.NSBundle;
 var mainBundle = NSBundle.mainBundle();
@@ -186,7 +181,8 @@ function batteryLevel() {
 }
 
 function batteryState() {
-  var state = currentDevice.batteryState();
+  var state = currentDevice.batteryState().toNumber();
+  // console.log("battery state: " + state + typeof state);
   var ret = "unknown";
   switch (state) {
     case 0:
@@ -226,45 +222,41 @@ function getScreenInfo() {
   };
 }
 
-function hostName() {
-  return processInfo.hostName().toString();
-}
-
-function processName() {
-  return processInfo.processName().toString();
-}
-
-function processIdentifier() {
-  return processInfo.processIdentifier();
-}
-
-function osVersionString() {
-  return processInfo.operatingSystemVersionString().toString();
+function getProcessInfo() {
+  var NSProcessInfo = ObjC.classes.NSProcessInfo;
+  var processInfo = NSProcessInfo.processInfo();
+  return {
+    host_name: processInfo.hostName().toString(),
+    process_name: processInfo.processName().toString(),
+    processid: processInfo.processIdentifier(), //or use frida API: Process.id
+    osversion_str: processInfo.operatingSystemVersionString().toString(),
+    arch: Process.arch,
+    platform: Process.platform,
+    pagesize: Process.pageSize,
+    pointersize: Process.pointerSize
+  };
 }
 
 function bundleIdentifier() {
   return mainBundle.bundleIdentifier().toString();
 }
 
-function bundlePath() {
-  return mainBundle.bundlePath().toString();
+function getAppPathInfo() {
+  return {
+    bundle_path: mainBundle.bundlePath().toString(),
+    sharedframework_path: mainBundle.sharedFrameworksPath().toString(),
+    privateframework_path: mainBundle.privateFrameworksPath().toString(),
+    executable_path: NSBundle.mainBundle().executablePath().toString(),
+    receipt_path: mainBundle.appStoreReceiptURL().path().toString(),
+    homedir: homeDirectory(),
+    docdir: documentDirectory(),
+    tempidr: temporaryDirectory(),
+    cachesdir: cachesDirectory(),
+    librarydir: libraryDirectory(),
+    executable_file: mainBundleInfoForKey("CFBundleExecutable")
+  };
 }
 
-function sharedFrameworksPath() {
-  return mainBundle.sharedFrameworksPath().toString();
-}
-
-function privateFrameworksPath() {
-  return mainBundle.privateFrameworksPath().toString();
-}
-
-function executablePath() {
-  return NSBundle.mainBundle().executablePath().toString();
-}
-
-function receiptPath() {
-  return mainBundle.appStoreReceiptURL().path().toString();
-}
 
 function getCookies() {
   var cookieJar = {};
@@ -390,6 +382,22 @@ function getCarrierInfo() {
   };
 }
 
+function getAppModuleInfo() {
+  var moduleInfo = [];
+  Process.enumerateModulesSync().forEach(function (image) {
+    if (image.path.indexOf(".app") != -1 || image.path.indexOf("/Library/MobileSubstrate/") == 0) {
+      moduleInfo.push({
+        name: image.name,
+        path: image.path,
+        baseaddr: image.base,
+        size: image.size
+      });
+    }
+  });
+  // return JSON.stringify(moduleInfo, null, 2);
+  return moduleInfo;
+}
+
 rpc.exports = {
   devicename: deviceName,
   systemname: systemName,
@@ -400,24 +408,9 @@ rpc.exports = {
   idfa: advertisingIdentifier,
   batterylevel: batteryLevel,
   batterystate: batteryState,
-  hostname: hostName,
-  processname: processName,
-  processid: processIdentifier,
-  osversion: osVersionString,
   bundleid: bundleIdentifier,
-  executablepath: executablePath,
-  sharedframeworkspath: sharedFrameworksPath,
-  privateframeworkspath: privateFrameworksPath,
-  bundlepath: bundlePath,
-  receiptpath: receiptPath,
-  homedir: homeDirectory,
-  docdir: documentDirectory,
-  tempidr: temporaryDirectory,
-  cachesdir: cachesDirectory,
-  librarydir: libraryDirectory,
   username: userName,
   fullusername: fullUserName,
-  cookies: getCookies,
   isjailbroken: isJailbroken,
   sysctlstringbyname: sysctlStringValueByName,
   sysctlint32valuebyname: sysctlInt32ValueByName,
@@ -428,4 +421,8 @@ rpc.exports = {
   mainbundleinfoforkey: mainBundleInfoForKey,
   carrierinfo: getCarrierInfo,
   screeninfo: getScreenInfo,
+  moduleinfo: getAppModuleInfo,
+  apppathinfo: getAppPathInfo,
+  processinfo: getProcessInfo,
+  cookies: getCookies,
 };

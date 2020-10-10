@@ -2,9 +2,16 @@ Module.ensureInitialized("UIKit");
 
 function getU32(addr) {
   if (typeof addr == "number") {
-      addr = ptr(addr);
+    addr = ptr(addr);
   }
   return Memory.readU32(addr);
+}
+
+function getPt(addr) {
+  if (typeof addr == "number") {
+    addr = ptr(addr);
+  }
+  return Memory.readPointer(addr);
 }
 
 function exportFunction(type, name, ret, args) {
@@ -32,7 +39,12 @@ function exportFunction(type, name, ret, args) {
   }
 }
 
-var _dyld_get_image_header = exportFunction("f", "_dyld_get_image_header", "pointer", ["uint"]);
+var _dyld_get_image_header = exportFunction(
+  "f",
+  "_dyld_get_image_header",
+  "pointer",
+  ["uint"]
+);
 
 var sysctlbyname = exportFunction("f", "sysctlbyname", "int", [
   "pointer",
@@ -61,7 +73,7 @@ var NSFullUserName = exportFunction("f", "NSFullUserName", "pointer", []);
 function fullUserName() {
   return {
     username: ObjC.Object(NSUserName()).toString(),
-    fullusername: ObjC.Object(NSFullUserName()).toString()
+    fullusername: ObjC.Object(NSFullUserName()).toString(),
   };
 }
 
@@ -138,7 +150,8 @@ var NSFileManager = ObjC.classes.NSFileManager;
 var defaultFileManager = NSFileManager.defaultManager();
 
 function mainBundleInfoForKey(key) {
-  return mainBundle.infoDictionary().objectForKey_(key).toString();
+  var value = mainBundle.infoDictionary().objectForKey_(key);
+  return value ? value.toString() : "null";
 }
 
 function deviceName() {
@@ -173,11 +186,10 @@ function advertisingIdentifier() {
       .UUIDString()
       .toString();
   } else {
-    send({message: "current app doesn't support AdSupport module."});
+    send({ message: "current app doesn't support AdSupport module." });
     return "";
   }
 }
-
 
 function batteryLevel() {
   // Battery level ranges from 0.0 (fully discharged) to 1.0 (100% charged). Before accessing this property, ensure that battery monitoring is enabled.
@@ -216,7 +228,7 @@ function getScreenInfo() {
   var brightness = screen.brightness();
   // var nativeScale = screen.nativeScale();
   // var currentModesize = screen.currentMode().size();
-  var nativeSize= screen.nativeBounds()[1];
+  var nativeSize = screen.nativeBounds()[1];
   return {
     width_in_points: size[0],
     height_in_points: size[1],
@@ -238,7 +250,7 @@ function getProcessInfo() {
     arch: Process.arch,
     platform: Process.platform,
     pagesize: Process.pageSize,
-    pointersize: Process.pointerSize
+    pointersize: Process.pointerSize,
   };
 }
 
@@ -258,10 +270,9 @@ function getAppPathInfo() {
     tempidr: temporaryDirectory(),
     cachesdir: cachesDirectory(),
     librarydir: libraryDirectory(),
-    executable_file: mainBundleInfoForKey("CFBundleExecutable")
+    executable_file: mainBundleInfoForKey("CFBundleExecutable"),
   };
 }
-
 
 function getCookies() {
   var cookieJar = [];
@@ -270,7 +281,9 @@ function getCookies() {
     var cookie = cookies.objectAtIndex_(index);
     cookieJar.push({
       domain: cookie.domain().toString(),
-      expiresDate: cookie.expiresDate() ? cookie.expiresDate().toString() : "null",
+      expiresDate: cookie.expiresDate()
+        ? cookie.expiresDate().toString()
+        : "null",
       isHTTPOnly: cookie.isHTTPOnly().toString(),
       isSecure: cookie.isSecure().toString(),
       name: cookie.name().toString(),
@@ -397,12 +410,15 @@ function getCarrierInfo() {
 function getAppModuleInfo() {
   var moduleInfo = [];
   Process.enumerateModulesSync().forEach(function (image) {
-    if (image.path.indexOf(".app") != -1 || image.path.indexOf("/Library/MobileSubstrate/") == 0) {
+    if (
+      image.path.indexOf(".app") != -1 /* ||
+      image.path.indexOf("/Library/MobileSubstrate/") == 0 */
+    ) {
       moduleInfo.push({
         name: image.name,
         path: image.path,
         baseaddr: image.base,
-        size: image.size
+        size: image.size,
       });
     }
   });
@@ -428,23 +444,74 @@ function getAllBundleInfo(type) {
       path: bundle.bundlePath().toString(),
       id: bundleIdentifier ? bundleIdentifier.toString() : null,
       version: bundleVersion ? bundleVersion.toString() : null,
-      executable: bundleExecutable ? bundleExecutable.toString() : null
+      executable: bundleExecutable ? bundleExecutable.toString() : null,
     });
   }
   return appBundles;
 }
 
-function getMachOInfo() {
-  var machHeader = _dyld_get_image_header(0);
-  console.log(machHeader.constructor.name, getAnyClass(machHeader));
-  var magic = getU32(machHeader);
-  var cputype = getU32(machHeader.add(4));
-  var cpusubtype = getU32(machHeader.add(8));
-  var filetype = getU32(machHeader.add(12));
-  var ncmds = getU32(machHeader.add(16));
-  var sizeofcmds = getU32(machHeader.add(20));
-  
-  console.log(magic, cputype, cpusubtype, filetype, ncmds, sizeofcmds);
+var FAT_MAGIC = 0xcafebabe;
+var FAT_CIGAM = 0xbebafeca;
+var MH_MAGIC = 0xfeedface;
+var MH_CIGAM = 0xcefaedfe;
+var MH_MAGIC_64 = 0xfeedfacf;
+var MH_CIGAM_64 = 0xcffaedfe;
+var LC_ENCRYPTION_INFO = 0x21;
+var LC_ENCRYPTION_INFO_64 = 0x2c;
+var LC_UUID = 0x1b;
+
+function getMachOFileInfo() {
+  var mach_header = _dyld_get_image_header(0);
+  // console.log(mach_header.constructor.name);
+
+  var magic = getU32(mach_header);
+  // var cputype = getU32(mach_header.add(4));
+  // var cpusubtype = getU32(mach_header.add(8));
+  // var filetype = getU32(mach_header.add(12));
+
+  var size_of_mach_header = 0;
+  if (magic == MH_MAGIC || magic == MH_CIGAM) {
+    size_of_mach_header = 28;
+  } else if (magic == MH_MAGIC_64 || magic == MH_CIGAM_64) {
+    size_of_mach_header = 32;
+  }
+
+  var ncmds = getU32(mach_header.add(16));
+  // var sizeofcmds = getU32(mach_header.add(20));
+  var off = size_of_mach_header;
+  for (var i = 0; i < ncmds; i++) {
+    var cmd = getU32(mach_header.add(off));
+    var cmdsize = getU32(mach_header.add(off + 4));
+    if (cmd == LC_ENCRYPTION_INFO || cmd == LC_ENCRYPTION_INFO_64) {
+      var cryptid_off = off + 16;
+      var cryptid = getU32(mach_header.add(cryptid_off));
+      console.log("cryptid: " + cryptid);
+    } else if (cmd == LC_UUID) {
+      var uuid_off = off + 8;
+      var uuid = Memory.readByteArray(mach_header.add(uuid_off), 16);
+
+      console.log(hexdump(uuid, {
+        offset: 0,
+        length: 16,
+        header: true,
+        ansi: true
+      }));
+
+      var arr = new Uint8Array(uuid);
+      // console.log("bytes length: " + arr.length);
+      var str_uuid = "";
+      for (var i = 0; i < arr.length; i++) {
+        var num = arr[i];
+        if (num < 16) {
+          str_uuid += "0" + num.toString(16);
+        } else {
+          str_uuid += num.toString(16);
+        }
+      }
+      console.log("uuid: " + str_uuid.toUpperCase());
+    }
+    off += cmdsize;
+  }
 }
 
 rpc.exports = {
@@ -473,5 +540,5 @@ rpc.exports = {
   processinfo: getProcessInfo,
   cookies: getCookies,
   allbundleinfo: getAllBundleInfo,
-  machoinfo: getMachOInfo,
+  machoinfo: getMachOFileInfo,
 };

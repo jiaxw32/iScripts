@@ -1,17 +1,14 @@
 Module.ensureInitialized("UIKit");
 
+function hexString(num) {
+  return "0x" + num.toString(16);
+}
+
 function getU32(addr) {
   if (typeof addr == "number") {
     addr = ptr(addr);
   }
   return Memory.readU32(addr);
-}
-
-function getPt(addr) {
-  if (typeof addr == "number") {
-    addr = ptr(addr);
-  }
-  return Memory.readPointer(addr);
 }
 
 function exportFunction(type, name, ret, args) {
@@ -77,12 +74,14 @@ var NSTemporaryDirectory = exportFunction(
 var NSUserName = exportFunction("f", "NSUserName", "pointer", []);
 var NSFullUserName = exportFunction("f", "NSFullUserName", "pointer", []);
 
-function fullUserName() {
+function getUserInfo() {
   return {
     username: ObjC.Object(NSUserName()).toString(),
     fullusername: ObjC.Object(NSFullUserName()).toString(),
   };
 }
+
+// console.log(JSON.stringify(getUserInfo()));
 
 function documentDirectory() {
   var NSDocumentDirectory = 9;
@@ -159,6 +158,24 @@ var defaultFileManager = NSFileManager.defaultManager();
 function mainBundleInfoForKey(key) {
   var value = mainBundle.infoDictionary().objectForKey_(key);
   return value ? value.toString() : "null";
+}
+
+function getAppBaseInfo() {
+  var ret = {
+    bundleid: mainBundle.bundleIdentifier().toString(),
+    appname: mainBundleInfoForKey("CFBundleDisplayName"),
+    bundlename: mainBundleInfoForKey("CFBundleName"),
+    app_version: mainBundleInfoForKey("CFBundleVersion"),
+    short_version: mainBundleInfoForKey("CFBundleShortVersionString"),
+    idfv: identifierForVendor(),
+    executable_file: mainBundleInfoForKey("CFBundleExecutable"),
+    bundle_path: mainBundle.bundlePath().toString(),
+    docdir: documentDirectory(),
+  };
+  if ("ASIdentifierManager" in ObjC.classes) {
+    ret["idfa"] = advertisingIdentifier();
+  }
+  return ret;
 }
 
 function deviceName() {
@@ -261,24 +278,23 @@ function getProcessInfo() {
   };
 }
 
-function bundleIdentifier() {
-  return mainBundle.bundleIdentifier().toString();
-}
-
 function getAppPathInfo() {
-  return {
+  var ret = {
     bundle_path: mainBundle.bundlePath().toString(),
     sharedframework_path: mainBundle.sharedFrameworksPath().toString(),
     privateframework_path: mainBundle.privateFrameworksPath().toString(),
     executable_path: NSBundle.mainBundle().executablePath().toString(),
-    receipt_path: mainBundle.appStoreReceiptURL().path().toString(),
     homedir: homeDirectory(),
     docdir: documentDirectory(),
     tempidr: temporaryDirectory(),
     cachesdir: cachesDirectory(),
     librarydir: libraryDirectory(),
-    executable_file: mainBundleInfoForKey("CFBundleExecutable"),
   };
+  var receiptURL = mainBundle.appStoreReceiptURL();
+  if (receiptURL) {
+    ret["receipt_path"] = receiptURL.path().toString();
+  }
+  return ret;
 }
 
 function getCookies() {
@@ -418,17 +434,20 @@ function getAppModuleInfo() {
   var moduleInfo = [];
   Process.enumerateModulesSync().forEach(function (image, index) {
     if (
-      image.path.indexOf(".app") != -1 /* ||
+      image.path.indexOf(".app") !=
+      -1 /* ||
       image.path.indexOf("/Library/MobileSubstrate/") == 0 */
     ) {
       var slide = _dyld_get_image_vmaddr_slide(index);
+      var macho_file_info = getMachOFileInfo(image.base);
       var hex_slide = "0x" + slide.toString(16);
       moduleInfo.push({
         name: image.name,
         path: image.path,
         baseaddr: image.base,
         size: image.size,
-        addr_slide: hex_slide
+        addr_slide: hex_slide,
+        macho: macho_file_info,
       });
     }
   });
@@ -466,18 +485,159 @@ var MH_MAGIC = 0xfeedface;
 var MH_CIGAM = 0xcefaedfe;
 var MH_MAGIC_64 = 0xfeedfacf;
 var MH_CIGAM_64 = 0xcffaedfe;
+
+/* ARM CPU type */
+var CPU_ARCH_ABI64 = 0x01000000; //64 bit ABI
+var CPU_TYPE_ARM = 12;
+var CPU_TYPE_ARM64 = CPU_TYPE_ARM | CPU_ARCH_ABI64;
+
+/* ARM64 subtypes */
+var CPU_SUBTYPE_ARM64_ALL = 0;
+var CPU_SUBTYPE_ARM64_V8 = 1;
+
+/* ARM subtypes */
+var CPU_SUBTYPE_ARM_ALL = 0;
+var CPU_SUBTYPE_ARM_V4T = 5;
+var CPU_SUBTYPE_ARM_V6 = 6;
+var CPU_SUBTYPE_ARM_V5TEJ = 7;
+var CPU_SUBTYPE_ARM_XSCALE = 8;
+var CPU_SUBTYPE_ARM_V7 = 9;
+var CPU_SUBTYPE_ARM_V7F = 10; /* Cortex A9 */
+var CPU_SUBTYPE_ARM_V7S = 11; /* Swift */
+var CPU_SUBTYPE_ARM_V7K = 12; /* Kirkwood40 */
+var CPU_SUBTYPE_ARM_V8 = 13;
+
 var LC_ENCRYPTION_INFO = 0x21;
 var LC_ENCRYPTION_INFO_64 = 0x2c;
 var LC_UUID = 0x1b;
 
-function getMachOFileInfo() {
-  var mach_header = _dyld_get_image_header(0);
-  // console.log(mach_header.constructor.name);
+/* Constants for the filetype field of the mach_header */
+var MH_OBJECT = 0x1;
+var MH_EXECUTE = 0x2;
+var MH_FVMLIB = 0x3;
+var MH_CORE = 0x4;
+var MH_PRELOAD = 0x5;
+var MH_DYLIB = 0x6;
+var MH_DYLINKER = 0x7;
+var MH_BUNDLE = 0x8;
+var MH_DYLIB_STUB = 0x9;
+var MH_DSYM = 0xa;
+var MH_KEXT_BUNDLE = 0xb;
+
+function getFileType(filetype) {
+  var ret = "";
+  switch (filetype) {
+    case MH_OBJECT:
+      ret = "MH_OBJECT";
+      break;
+    case MH_EXECUTE:
+      ret = "MH_EXECUTE";
+      break;
+    case MH_FVMLIB:
+      ret = "MH_FVMLIB";
+      break;
+    case MH_CORE:
+      ret = "MH_CORE";
+      break;
+    case MH_PRELOAD:
+      ret = "MH_PRELOAD";
+      break;
+    case MH_DYLIB:
+      ret = "MH_DYLIB";
+      break;
+    case MH_DYLINKER:
+      ret = "MH_DYLINKER";
+    case MH_BUNDLE:
+      ret = "MH_BUNDLE";
+      break;
+    case MH_DYLIB_STUB:
+      ret = "MH_DYLIB_STUB";
+      break;
+    case MH_DSYM:
+      ret = "MH_DSYM";
+      break;
+    case MH_KEXT_BUNDLE:
+      ret = "MH_KEXT_BUNDLE";
+      break;
+    default:
+      ret = hexString(cputype);
+      break;
+  }
+  return ret;
+}
+
+function getCPUType(cputype) {
+  var ret = "";
+  switch (cputype) {
+    case CPU_TYPE_ARM:
+      ret = "CPU_TYPE_ARM";
+      break;
+    case CPU_TYPE_ARM64:
+      ret = "CPU_TYPE_ARM64";
+      break;
+    default:
+      ret = hexString(cputype);
+      break;
+  }
+  return ret;
+}
+
+function getCPUSubtype(subtype) {
+  var ret = "";
+  switch (subtype) {
+    case CPU_SUBTYPE_ARM_ALL:
+      ret = "CPU_SUBTYPE_ARM_ALL";
+      break;
+    case CPU_SUBTYPE_ARM_V4T:
+      ret = "CPU_SUBTYPE_ARM_V4T";
+      break;
+    case CPU_SUBTYPE_ARM_V6:
+      ret = "CPU_SUBTYPE_ARM_V6";
+      break;
+    case CPU_SUBTYPE_ARM_V5TEJ:
+      ret = "CPU_SUBTYPE_ARM_V5TEJ";
+      break;
+    case CPU_SUBTYPE_ARM_XSCALE:
+      ret = "CPU_SUBTYPE_ARM_XSCALE";
+      break;
+    case CPU_SUBTYPE_ARM_V7:
+      ret = "CPU_SUBTYPE_ARM_V7";
+      break;
+    case CPU_SUBTYPE_ARM_V7F:
+      ret = "CPU_SUBTYPE_ARM_V7F";
+      break;
+    case CPU_SUBTYPE_ARM_V7S:
+      ret = "CPU_SUBTYPE_ARM_V7S";
+      break;
+    case CPU_SUBTYPE_ARM_V7K:
+      ret = "CPU_SUBTYPE_ARM_V7K";
+      break;
+    case CPU_SUBTYPE_ARM_V8:
+      ret = "CPU_SUBTYPE_ARM_V8";
+      break;
+    default:
+      ret = hexString(subtype);
+      break;
+  }
+  return ret;
+}
+
+function getMachOFileInfo(addr) {
+  if (addr == null) return {};
+
+  // var mach_header = _dyld_get_image_header(0);
+  var mach_header = addr;
+  var ret = {};
 
   var magic = getU32(mach_header);
-  // var cputype = getU32(mach_header.add(4));
-  // var cpusubtype = getU32(mach_header.add(8));
-  // var filetype = getU32(mach_header.add(12));
+  var cputype = getU32(mach_header.add(0x4));
+  var cpusubtype = getU32(mach_header.add(0x8));
+  var filetype = getU32(mach_header.add(0xc));
+
+  ret["magic_number"] = hexString(magic);
+  ret["cputype"] = getCPUType(cputype);
+  ret["cpusubtype"] = getCPUSubtype(cpusubtype);
+  ret["filetype"] = getFileType(filetype);
 
   var size_of_mach_header = 0;
   if (magic == MH_MAGIC || magic == MH_CIGAM) {
@@ -486,8 +646,8 @@ function getMachOFileInfo() {
     size_of_mach_header = 32;
   }
 
-  var ncmds = getU32(mach_header.add(16));
-  // var sizeofcmds = getU32(mach_header.add(20));
+  var ncmds = getU32(mach_header.add(0x10));
+  // var sizeofcmds = getU32(mach_header.add(0x14));
   var off = size_of_mach_header;
   for (var i = 0; i < ncmds; i++) {
     var cmd = getU32(mach_header.add(off));
@@ -495,20 +655,19 @@ function getMachOFileInfo() {
     if (cmd == LC_ENCRYPTION_INFO || cmd == LC_ENCRYPTION_INFO_64) {
       var cryptid_off = off + 16;
       var cryptid = getU32(mach_header.add(cryptid_off));
-      console.log("cryptid: " + cryptid);
+      ret["cryptid"] = cryptid;
     } else if (cmd == LC_UUID) {
       var uuid_off = off + 8;
       var uuid = Memory.readByteArray(mach_header.add(uuid_off), 16);
 
-      console.log(hexdump(uuid, {
-        offset: 0,
-        length: 16,
-        header: true,
-        ansi: true
-      }));
+      // console.log(hexdump(uuid, {
+      //   offset: 0,
+      //   length: 16,
+      //   header: true,
+      //   ansi: true
+      // }));
 
       var arr = new Uint8Array(uuid);
-      // console.log("bytes length: " + arr.length);
       var str_uuid = "";
       for (var i = 0; i < arr.length; i++) {
         var num = arr[i];
@@ -518,10 +677,11 @@ function getMachOFileInfo() {
           str_uuid += num.toString(16);
         }
       }
-      console.log("uuid: " + str_uuid.toUpperCase());
+      ret["uuid"] = str_uuid.toUpperCase();
     }
     off += cmdsize;
   }
+  return ret;
 }
 
 rpc.exports = {
@@ -530,11 +690,9 @@ rpc.exports = {
   systemversion: systemVersion,
   model: deviceModel,
   localizedmodel: localizedModel,
-  idfv: identifierForVendor,
   idfa: advertisingIdentifier,
   batterylevel: batteryLevel,
   batterystate: batteryState,
-  bundleid: bundleIdentifier,
   isjailbroken: isJailbroken,
   sysctlstringbyname: sysctlStringValueByName,
   sysctlint32valuebyname: sysctlInt32ValueByName,
@@ -542,7 +700,7 @@ rpc.exports = {
   sysctluint64valuebyname: sysctlUInt64ValueByName,
   storagesize: storageSize,
   freesize: freeSize,
-  mainbundleinfoforkey: mainBundleInfoForKey,
+  appbaseinfo: getAppBaseInfo,
   carrierinfo: getCarrierInfo,
   screeninfo: getScreenInfo,
   moduleinfo: getAppModuleInfo,
@@ -550,5 +708,4 @@ rpc.exports = {
   processinfo: getProcessInfo,
   cookies: getCookies,
   allbundleinfo: getAllBundleInfo,
-  machoinfo: getMachOFileInfo,
 };

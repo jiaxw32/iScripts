@@ -55,7 +55,7 @@ def attach_application(device, bundleid = None):
                 device.resume(pid)
                 return session
             except Exception as identifier:
-                print(f"faild to run application {bundleid}. {ex}")
+                print(f"faild to run the application {bundleid}. {ex}")
                 sys.exit(-1)
 
 def load_script(session, filename):
@@ -67,8 +67,10 @@ def load_script(session, filename):
     return script
 
 device = get_usb_iphone()
-# session = attach_application(device, "com.apple.TestFlight")
+# attach current active application
 session = attach_application(device)
+# attach application by app identifier.
+# session = attach_application(device, "com.apple.TestFlight") 
 script = load_script(session, "./appinfo.js")
 
 deviceinfo: dict = {}
@@ -95,15 +97,10 @@ carrierInfo = script.exports.carrierinfo() # <class 'dict'>
 deviceinfo["carrier_info"] = carrierInfo
 
 appInfo: dict = {}
-appInfo["bundleid"] = script.exports.bundleid()
-appInfo["appname"] = script.exports.mainBundleInfoForKey("CFBundleDisplayName")
-appInfo["bundlename"] = script.exports.mainBundleInfoForKey("CFBundleName")
-appInfo["app_version"] = script.exports.mainBundleInfoForKey("CFBundleVersion")
-appInfo["app_short_version"] = script.exports.mainBundleInfoForKey("CFBundleShortVersionString")
-appInfo["idfv"] = script.exports.idfv()
 appInfo["cookies"] = script.exports.cookies()
-appInfo["app_module"] = script.exports.moduleinfo()
-appInfo["app_path"] = script.exports.apppathinfo()
+appInfo["module"] = script.exports.moduleinfo()
+appInfo["path"] = script.exports.apppathinfo()
+appInfo["base"] = script.exports.appbaseinfo()
 # appInfo["allbundle"] = script.exports.allbundleinfo(0)
 
 processInfo = script.exports.processinfo()
@@ -116,6 +113,6 @@ info["device_info"] = deviceinfo
 strAppInfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
 print(strAppInfo)
 
-script.exports.machoinfo()
+# TODO: 1. keychain 2. signature 3. imei 4. 参考利落检测器，获取更多设备信息
 
 session.detach()

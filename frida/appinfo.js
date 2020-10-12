@@ -420,13 +420,15 @@ function sysctlUInt64ValueByName(name) {
 function getCarrierInfo() {
   var ctinfo = ObjC.classes.CTTelephonyNetworkInfo.alloc().init();
   var carrier = ctinfo.subscriberCellularProvider();
-  var name = carrier.carrierName().toString();
-  var countryCode = carrier.mobileCountryCode().toString();
-  var isoCountryCode = carrier.isoCountryCode().toString();
+  var carrierName = carrier.carrierName();
+  var countryCode = carrier.mobileCountryCode();
+  var isoCountryCode = carrier.isoCountryCode();
+  var networkCode = carrier.mobileNetworkCode();
   return {
-    carrier_name: name,
-    country_code: countryCode,
-    iso_country_code: isoCountryCode,
+    carrier_name: carrierName ? carrierName.toString() : null,
+    country_code: countryCode ? countryCode.toString() : null,
+    iso_country_code: isoCountryCode ? isoCountryCode.toString() : null,
+    network_code: networkCode ? networkCode.toString() : null,
   };
 }
 

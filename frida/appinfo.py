@@ -42,7 +42,7 @@ def attach_application(device, bundleid = None):
             session = device.attach(application.pid)
             return session
         else:
-            print("get the active application failed, please run an application first.")
+            print("No frontmost application on iPhone, please run an application first.")
             sys.exit(-1)
     else:
         if application is not None and application.identifier == bundleid:

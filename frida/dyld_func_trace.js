@@ -5,7 +5,29 @@ function stackBacktrace(ctx) {
         .map(DebugSymbol.fromAddress)
         .join("\n\t")
   );
-};
+}
+
+// Interceptor.attach(Module.findExportByName(null, "getsectbynamefromheader_64"), {
+//   onEnter: function (args) {
+//     console.log(
+//       "getsectbynamefromheader_64 " +
+//         "segment name: " + args[1].readUtf8String() + ", " +
+//         "section name" + args[2].readUtf8String()
+//     );
+//     stackBacktrace(this.context);
+//   },
+// });
+
+Interceptor.attach(Module.findExportByName(null, "getsectiondata"), {
+  onEnter: function (args) {
+    console.log(
+      "getsectiondata " +
+        "segment name: " + args[1].readUtf8String() + ", " +
+        "section name" + args[2].readUtf8String()
+    );
+    // stackBacktrace(this.context);
+  },
+});
 
 /*
 uint32_t _dyld_image_count(void);
@@ -36,6 +58,9 @@ Interceptor.attach(Module.findExportByName(null, "_dyld_get_image_name"), {
       name.startsWith("/usr/lib/system/") ||
       (name.startsWith("/usr/lib/") && name.toLowerCase().indexOf("substrate") == -1)
     ) {
+      // /usr/lib/substrate/SubstrateLoader.dylib
+      // /usr/lib/substrate/SubstrateInserter.dylib
+      // /usr/lib/libsubstrate.dylib
       return;
     }
     console.log("_dyld_get_image_name " + name);
@@ -50,7 +75,8 @@ returns a pointer to the mach header of the image indexed by image_index.  If im
 */
 Interceptor.attach(Module.findExportByName(null, "_dyld_get_image_header"), {
   onEnter: function (args) {
-    console.log("dyld_get_image_header");
+    console.log("dyld_get_image_header:");
+    stackBacktrace(this.context);
   },
 });
 
@@ -64,6 +90,7 @@ Interceptor.attach(
   {
     onEnter: function (args) {
       console.log("_dyld_get_image_vmaddr_slide");
+      stackBacktrace(this.context);
     },
   }
 );
@@ -78,6 +105,7 @@ Interceptor.attach(
   {
     onEnter: function (args) {
       console.log("_dyld_register_func_for_add_image");
+      stackBacktrace(this.context);
     },
   }
 );
@@ -127,6 +155,7 @@ Interceptor.attach(Module.findExportByName(null, "dlopen_preflight"), {
   onEnter: function (args) {
     if (args[0].isNull()) return;
     console.log("dlopen_preflight " + Memory.readUtf8String(args[0]));
+    stackBacktrace(this.context);
   },
 });
 
@@ -141,7 +170,16 @@ Interceptor.attach(Module.findExportByName(null, "dlopen"), {
       return;
     }
     var filename = Memory.readUtf8String(args[0]);
+    if (
+      filename.startsWith("/System/Library/") ||
+      filename.startsWith("/usr/lib/system/") ||
+      (filename.startsWith("/usr/lib/") && filename.toLowerCase().indexOf("substrate") == -1)
+    ) {
+      // /usr/lib/substrate/SubstrateLoader.dylib, /usr/lib/substrate/SubstrateInserter.dylib, /usr/lib/libsubstrate.dylib
+      return;
+    }
     console.log("dlopen " + filename);
+    stackBacktrace(this.context);
   },
 });
 
@@ -152,5 +190,6 @@ Interceptor.attach(Module.findExportByName(null, "dlsym"), {
   onEnter: function (args) {
     if (args[1].isNull()) return;
     console.log("dlsym " + Memory.readUtf8String(args[1]));
+    stackBacktrace(this.context);
   },
 });

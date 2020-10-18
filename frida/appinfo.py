@@ -3,6 +3,9 @@ import codecs
 import frida
 import json
 import threading
+import argparse
+
+# TODO: 1. keychain 2. signature 3. imei 4. 参考利落检测器，获取更多设备信息
 
 def on_message(message, data):
     if message['type'] == 'send':
@@ -66,53 +69,87 @@ def load_script(session, filename):
     script.load()
     return script
 
-device = get_usb_iphone()
-# attach current active application
-session = attach_application(device)
-# attach application by app identifier.
-# session = attach_application(device, "com.apple.TestFlight") 
-script = load_script(session, "./appinfo.js")
+# deviceinfo: dict = {}
+# deviceinfo["device_name"] = script.exports.devicename()
+# deviceinfo["system_name"] = script.exports.systemname()
+# deviceinfo["system_version"] = script.exports.systemversion()
+# deviceinfo["system_model"] = script.exports.model()
+# deviceinfo["system_localizemodel"] = script.exports.localizedmodel()
+# deviceinfo["battery_level"] = script.exports.batterylevel()
+# deviceinfo["battery_state"] = script.exports.batterystate()
+# deviceinfo["idfa"] = script.exports.idfa()
+# deviceinfo["screen_info"] = script.exports.screeninfo()
+# deviceinfo["jailbroken"] = script.exports.isjailbroken()
+# deviceinfo["hw.model"] = script.exports.sysctlstringbyname("hw.model")
+# deviceinfo["hw.machine"] = script.exports.sysctlstringbyname("hw.machine")
+# deviceinfo["kern.version"] = script.exports.sysctlstringbyname("kern.version")
+# deviceinfo["kern.osversion"] = script.exports.sysctlstringbyname("kern.osversion")
+# deviceinfo["hw.cputype"] = script.exports.sysctlInt32ValueByName("hw.cputype")
+# deviceinfo["hw.cpusubtype"] = script.exports.sysctlInt32ValueByName("hw.cpusubtype")
+# deviceinfo["hw.memsize"] = script.exports.sysctluint64valuebyname("hw.memsize")
+# deviceinfo["storage_size"] = script.exports.storagesize()
+# deviceinfo["free_size"] = script.exports.freesize()
+# carrierInfo = script.exports.carrierinfo() # <class 'dict'>
+# deviceinfo["carrier_info"] = carrierInfo
 
-deviceinfo: dict = {}
-deviceinfo["device_name"] = script.exports.devicename()
-deviceinfo["system_name"] = script.exports.systemname()
-deviceinfo["system_version"] = script.exports.systemversion()
-deviceinfo["system_model"] = script.exports.model()
-deviceinfo["system_localizemodel"] = script.exports.localizedmodel()
-deviceinfo["battery_level"] = script.exports.batterylevel()
-deviceinfo["battery_state"] = script.exports.batterystate()
-deviceinfo["idfa"] = script.exports.idfa()
-deviceinfo["screen_info"] = script.exports.screeninfo()
-deviceinfo["jailbroken"] = script.exports.isjailbroken()
-deviceinfo["hw.model"] = script.exports.sysctlstringbyname("hw.model")
-deviceinfo["hw.machine"] = script.exports.sysctlstringbyname("hw.machine")
-deviceinfo["kern.version"] = script.exports.sysctlstringbyname("kern.version")
-deviceinfo["kern.osversion"] = script.exports.sysctlstringbyname("kern.osversion")
-deviceinfo["hw.cputype"] = script.exports.sysctlInt32ValueByName("hw.cputype")
-deviceinfo["hw.cpusubtype"] = script.exports.sysctlInt32ValueByName("hw.cpusubtype")
-deviceinfo["hw.memsize"] = script.exports.sysctluint64valuebyname("hw.memsize")
-deviceinfo["storage_size"] = script.exports.storagesize()
-deviceinfo["free_size"] = script.exports.freesize()
-carrierInfo = script.exports.carrierinfo() # <class 'dict'>
-deviceinfo["carrier_info"] = carrierInfo
+def getAllAppInfo():
+    """
+    docstring
+    """
+    appinfo: dict = {}
+    appInfo["base"] = script.exports.appbaseinfo()
+    appInfo["cookies"] = script.exports.cookies()
+    appInfo["module"] = script.exports.moduleinfo()
+    appInfo["path"] = script.exports.apppathinfo()
+    return appInfo
 
-appInfo: dict = {}
-appInfo["cookies"] = script.exports.cookies()
-appInfo["module"] = script.exports.moduleinfo()
-appInfo["path"] = script.exports.apppathinfo()
-appInfo["base"] = script.exports.appbaseinfo()
-# appInfo["allbundle"] = script.exports.allbundleinfo(0)
+def printAppInfo(info):
+    """
+    docstring
+    """
+    appInfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
+    print(appInfo)
 
-processInfo = script.exports.processinfo()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Welcome frida appinfo.')
+    parser.add_argument('-a', '--all', dest='get_all_appinfo', action='store_true', help='Get all app info.')
+    parser.add_argument('-b', '--basic', dest='get_app_basicinfo', action='store_true', help='Get App basic information.')
+    parser.add_argument('-c', '--cookie', dest='get_app_cookie', action='store_true', help='Get App cookies.')
+    parser.add_argument('-m', '--module', dest='get_app_module', action='store_true', help='Get App module info.')
+    parser.add_argument('-p', '--path', dest='get_app_path', action='store_true', help='Get App path.')
+    parser.add_argument('-P', '--Process', dest='get_app_process_info', action='store_true', help='Get App Process Info.')
+    args = parser.parse_args()
+    # parser.print_help()
 
-info: dict = {}
-info["app_info"] = appInfo
-info["proccess_info"] = processInfo
-info["device_info"] = deviceinfo
+    device = get_usb_iphone()
+    # attach current active application
+    session = attach_application(device)
+    # attach application by app identifier.
+    # session = attach_application(device, "com.apple.TestFlight") 
+    script = load_script(session, "./appinfo.js")
 
-strAppInfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
-print(strAppInfo)
+    info: dict = {}
 
-# TODO: 1. keychain 2. signature 3. imei 4. 参考利落检测器，获取更多设备信息
+    appInfo: dict = {}
+    # appInfo["allbundle"] = script.exports.allbundleinfo(0)
 
-session.detach()
+    if args.get_app_basicinfo:
+        appInfo["base"] = script.exports.appbaseinfo()
+    if args.get_app_cookie:
+        appInfo["cookies"] = script.exports.cookies()
+    if args.get_app_module:
+        appInfo["module"] = script.exports.moduleinfo()
+    if args.get_app_path:
+        appInfo["path"] = script.exports.apppathinfo()
+    if args.get_app_process_info:
+        info["proccess_info"] = script.exports.processinfo()
+
+    if args.get_all_appinfo or len(sys.argv[1:]) == 0:
+        appInfo = getAllAppInfo()
+        info["proccess_info"] = script.exports.processinfo()
+
+    info["app_info"] = appInfo
+    
+    # info["device_info"] = deviceinfo
+    printAppInfo(info)
+    session.detach()

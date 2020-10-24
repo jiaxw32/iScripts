@@ -14,9 +14,9 @@ def on_message(message, data):
         print(message['stack'])
 
 def get_usb_iphone():
-    Type = 'usb'
+    device_type = 'usb'
     if int(frida.__version__.split('.')[0]) < 12:
-        Type = 'tether'
+        device_type = 'tether'
     device_manager = frida.get_device_manager()
     changed = threading.Event()
 
@@ -27,7 +27,7 @@ def get_usb_iphone():
 
     device = None
     while device is None:
-        devices = [dev for dev in device_manager.enumerate_devices() if dev.type == Type]
+        devices = [dev for dev in device_manager.enumerate_devices() if dev.type == device_type]
         if len(devices) == 0:
             print('Waiting for USB device...')
             changed.wait()
@@ -69,52 +69,30 @@ def load_script(session, filename):
     script.load()
     return script
 
-# deviceinfo: dict = {}
-# deviceinfo["device_name"] = script.exports.devicename()
-# deviceinfo["system_name"] = script.exports.systemname()
-# deviceinfo["system_version"] = script.exports.systemversion()
-# deviceinfo["system_model"] = script.exports.model()
-# deviceinfo["system_localizemodel"] = script.exports.localizedmodel()
-# deviceinfo["battery_level"] = script.exports.batterylevel()
-# deviceinfo["battery_state"] = script.exports.batterystate()
-# deviceinfo["idfa"] = script.exports.idfa()
-# deviceinfo["screen_info"] = script.exports.screeninfo()
-# deviceinfo["jailbroken"] = script.exports.isjailbroken()
-# deviceinfo["hw.model"] = script.exports.sysctlstringbyname("hw.model")
-# deviceinfo["hw.machine"] = script.exports.sysctlstringbyname("hw.machine")
-# deviceinfo["kern.version"] = script.exports.sysctlstringbyname("kern.version")
-# deviceinfo["kern.osversion"] = script.exports.sysctlstringbyname("kern.osversion")
-# deviceinfo["hw.cputype"] = script.exports.sysctlInt32ValueByName("hw.cputype")
-# deviceinfo["hw.cpusubtype"] = script.exports.sysctlInt32ValueByName("hw.cpusubtype")
-# deviceinfo["hw.memsize"] = script.exports.sysctluint64valuebyname("hw.memsize")
-# deviceinfo["storage_size"] = script.exports.storagesize()
-# deviceinfo["free_size"] = script.exports.freesize()
-# carrierInfo = script.exports.carrierinfo() # <class 'dict'>
-# deviceinfo["carrier_info"] = carrierInfo
-
-def getAllAppInfo():
+def get_all_appinfo():
     """
     docstring
     """
     appinfo: dict = {}
-    appInfo["base"] = script.exports.appbaseinfo()
-    appInfo["cookies"] = script.exports.cookies()
-    appInfo["module"] = script.exports.moduleinfo()
-    appInfo["path"] = script.exports.apppathinfo()
-    return appInfo
+    appinfo["base"] = script.exports.appbaseinfo()
+    appinfo["cookies"] = script.exports.cookies()
+    appinfo["module"] = script.exports.moduleinfo()
+    appinfo["path"] = script.exports.apppathinfo()
+    return appinfo
 
-def printAppInfo(info):
+def print_appinfo(info):
     """
     docstring
     """
-    appInfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
-    print(appInfo)
+    appinfo = json.dumps(info, ensure_ascii=False, sort_keys=True, indent=2)
+    print(appinfo)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Welcome frida appinfo.')
     parser.add_argument('-a', '--all', dest='get_all_appinfo', action='store_true', help='Get all app info.')
     parser.add_argument('-b', '--basic', dest='get_app_basicinfo', action='store_true', help='Get App basic information.')
     parser.add_argument('-c', '--cookie', dest='get_app_cookie', action='store_true', help='Get App cookies.')
+    parser.add_argument('-d', '--device', dest='get_device_info', action='store_true', help='Get Device information.')
     parser.add_argument('-m', '--module', dest='get_app_module', action='store_true', help='Get App module info.')
     parser.add_argument('-p', '--path', dest='get_app_path', action='store_true', help='Get App path.')
     parser.add_argument('-P', '--Process', dest='get_app_process_info', action='store_true', help='Get App Process Info.')
@@ -130,26 +108,28 @@ if __name__ == '__main__':
 
     info: dict = {}
 
-    appInfo: dict = {}
-    # appInfo["allbundle"] = script.exports.allbundleinfo(0)
+    appinfo: dict = {}
+    # appinfo["allbundle"] = script.exports.allbundleinfo(0)
 
     if args.get_app_basicinfo:
-        appInfo["base"] = script.exports.appbaseinfo()
+        appinfo["base"] = script.exports.appbaseinfo()
     if args.get_app_cookie:
-        appInfo["cookies"] = script.exports.cookies()
+        appinfo["cookies"] = script.exports.cookies()
     if args.get_app_module:
-        appInfo["module"] = script.exports.moduleinfo()
+        appinfo["module"] = script.exports.moduleinfo()
     if args.get_app_path:
-        appInfo["path"] = script.exports.apppathinfo()
+        appinfo["path"] = script.exports.apppathinfo()
     if args.get_app_process_info:
         info["proccess_info"] = script.exports.processinfo()
+    if args.get_device_info:
+        info["device_info"] = script.exports.deviceinfo()
 
     if args.get_all_appinfo or len(sys.argv[1:]) == 0:
-        appInfo = getAllAppInfo()
+        appinfo = get_all_appinfo()
         info["proccess_info"] = script.exports.processinfo()
 
-    info["app_info"] = appInfo
-    
-    # info["device_info"] = deviceinfo
-    printAppInfo(info)
+    if len(appinfo):
+        info["app_info"] = appinfo
+
+    print_appinfo(info)
     session.detach()

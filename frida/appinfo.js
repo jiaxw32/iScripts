@@ -178,24 +178,35 @@ function getAppBaseInfo() {
   return ret;
 }
 
-function deviceName() {
-  return currentDevice.name().toString();
-}
-
-function systemName() {
-  return currentDevice.systemName().toString();
-}
-
-function systemVersion() {
-  return currentDevice.systemVersion().toString();
-}
-
-function deviceModel() {
-  return currentDevice.model().toString();
-}
-
-function localizedModel() {
-  return currentDevice.localizedModel().toString();
+function getDeviceInfo() {
+  var currentDevice = UIDevice.currentDevice();
+  const deviceName = currentDevice.name().toString();
+  const systemName = currentDevice.systemName().toString();
+  const systemVersion = currentDevice.systemVersion().toString();
+  const deviceModel = currentDevice.model().toString();
+  const localizedModel = currentDevice.localizedModel().toString();
+  var ret = {
+    device_name: deviceName,
+    system_name: systemName,
+    system_version: systemVersion,
+    device_model: deviceModel,
+    device_localized_model: localizedModel,
+    battery_info: getBatteryInfo(),
+    idfa: advertisingIdentifier(),
+    jailbroken: isJailbroken(),
+    screen_info: getScreenInfo(),
+    carrier_info: getCarrierInfo(),
+    free_size: freeSize(),
+    storage_size: storageSize(),
+    hw_model: sysctlStringValueByName("hw.model"),
+    hw_machine: sysctlStringValueByName("hw.machine"),
+    hw_machine: sysctlStringValueByName("kern.version"),
+    kern_osversion: sysctlStringValueByName("kern.osversion"),
+    hw_cputype: sysctlInt32ValueByName("hw.cputype"),
+    hw_cpusubtype: sysctlInt32ValueByName("hw.cpusubtype"),
+    hw_memsize: sysctlInt64ValueByName("hw.memsize"),
+  };
+  return ret;
 }
 
 function identifierForVendor() {
@@ -215,33 +226,36 @@ function advertisingIdentifier() {
   }
 }
 
-function batteryLevel() {
+function getBatteryInfo() {
+  const currentDevice = UIDevice.currentDevice();
+  const batteryMonitoringEnabled = currentDevice.isBatteryMonitoringEnabled();
   // Battery level ranges from 0.0 (fully discharged) to 1.0 (100% charged). Before accessing this property, ensure that battery monitoring is enabled.
   // If battery monitoring is not enabled, the value of this property is –1.0.
-  return currentDevice.batteryLevel();
-}
-
-function batteryState() {
-  var state = currentDevice.batteryState().valueOf();
-  // console.log("battery state: " + state + typeof state);
-  var ret = "unknown";
-  switch (state) {
+  const batteryLevel = currentDevice.batteryLevel();
+  const batteryState = currentDevice.batteryState().valueOf();
+  var state = "unknown";
+  switch (batteryState) {
     case 0:
-      ret = "unknown";
+      state = "unknown";
       break;
     case 1:
-      ret = "unplugged";
+      state = "unplugged";
       break;
     case 2:
-      ret = "charging";
+      state = "charging";
       break;
     case 3:
-      ret = "full";
+      state = "full";
       break;
     default:
       break;
   }
-  return ret;
+
+  return {
+    monitoring_enabled: batteryMonitoringEnabled,
+    battery_level: batteryLevel,
+    state: state
+  }
 }
 
 function getScreenInfo() {
@@ -687,27 +701,11 @@ function getMachOFileInfo(addr) {
 }
 
 rpc.exports = {
-  devicename: deviceName,
-  systemname: systemName,
-  systemversion: systemVersion,
-  model: deviceModel,
-  localizedmodel: localizedModel,
-  idfa: advertisingIdentifier,
-  batterylevel: batteryLevel,
-  batterystate: batteryState,
-  isjailbroken: isJailbroken,
-  sysctlstringbyname: sysctlStringValueByName,
-  sysctlint32valuebyname: sysctlInt32ValueByName,
-  sysctlint64valuebyname: sysctlInt64ValueByName,
-  sysctluint64valuebyname: sysctlUInt64ValueByName,
-  storagesize: storageSize,
-  freesize: freeSize,
   appbaseinfo: getAppBaseInfo,
-  carrierinfo: getCarrierInfo,
-  screeninfo: getScreenInfo,
   moduleinfo: getAppModuleInfo,
   apppathinfo: getAppPathInfo,
   processinfo: getProcessInfo,
   cookies: getCookies,
   allbundleinfo: getAllBundleInfo,
+  deviceinfo: getDeviceInfo,
 };

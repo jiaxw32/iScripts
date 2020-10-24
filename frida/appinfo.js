@@ -446,26 +446,72 @@ function getCarrierInfo() {
   };
 }
 
-function getAppModuleInfo() {
+function getAppModuleInfo(type) {
   var moduleInfo = [];
-  Process.enumerateModulesSync().forEach(function (image, index) {
-    if (
-      image.path.indexOf(".app") !=
-      -1 /* ||
-      image.path.indexOf("/Library/MobileSubstrate/") == 0 */
-    ) {
-      var slide = _dyld_get_image_vmaddr_slide(index);
-      var macho_file_info = getMachOFileInfo(image.base);
-      var hex_slide = "0x" + slide.toString(16);
-      moduleInfo.push({
-        name: image.name,
-        path: image.path,
-        baseaddr: image.base,
-        size: image.size,
-        addr_slide: hex_slide,
-        macho: macho_file_info,
-      });
+  var dict = {}
+
+  Process.enumerateModulesSync().filter(function (image, index) {
+    dict[image.name] = index;
+    if (type == 1){
+      return image.path.indexOf(".app") != -1;
+    } else if (type == 2){
+      return image.path.indexOf("/Library/MobileSubstrate/") == 0;
+    } else {
+      return true;
     }
+  }).forEach(function (image) {
+    var index = dict[image.name]
+    var slide = _dyld_get_image_vmaddr_slide(index);
+    var macho_file_info = getMachOFileInfo(image.base);
+    var hex_slide = "0x" + slide.toString(16);
+    moduleInfo.push({
+      name: image.name,
+      path: image.path,
+      baseaddr: image.base,
+      size: image.size,
+      addr_slide: hex_slide,
+      macho: macho_file_info,
+      index: index,
+    });
+    // if (type == 0) {
+    //   // var info = moduleInfo(image, index);
+    //   // moduleInfo.push(info);
+    //   var slide = _dyld_get_image_vmaddr_slide(index);
+    //   var macho_file_info = getMachOFileInfo(image.base);
+    //   var hex_slide = "0x" + slide.toString(16);
+    //   moduleInfo.push({
+    //     name: image.name,
+    //     path: image.path,
+    //     baseaddr: image.base,
+    //     size: image.size,
+    //     addr_slide: hex_slide,
+    //     macho: macho_file_info,
+    //   });
+    // } else if (type == 1  && image.path.indexOf(".app") != -1) {
+    //   var slide = _dyld_get_image_vmaddr_slide(index);
+    //   var macho_file_info = getMachOFileInfo(image.base);
+    //   var hex_slide = "0x" + slide.toString(16);
+    //   moduleInfo.push({
+    //     name: image.name,
+    //     path: image.path,
+    //     baseaddr: image.base,
+    //     size: image.size,
+    //     addr_slide: hex_slide,
+    //     macho: macho_file_info,
+    //   });
+    // } else if (type == 2 && ) {
+    //   var slide = _dyld_get_image_vmaddr_slide(index);
+    //   var macho_file_info = getMachOFileInfo(image.base);
+    //   var hex_slide = "0x" + slide.toString(16);
+    //   moduleInfo.push({
+    //     name: image.name,
+    //     path: image.path,
+    //     baseaddr: image.base,
+    //     size: image.size,
+    //     addr_slide: hex_slide,
+    //     macho: macho_file_info,
+    //   });
+    // }
   });
   // return JSON.stringify(moduleInfo, null, 2);
   return moduleInfo;

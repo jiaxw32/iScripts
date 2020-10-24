@@ -93,7 +93,9 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--basic', dest='get_app_basicinfo', action='store_true', help='Get App basic information.')
     parser.add_argument('-c', '--cookie', dest='get_app_cookie', action='store_true', help='Get App cookies.')
     parser.add_argument('-d', '--device', dest='get_device_info', action='store_true', help='Get Device information.')
-    parser.add_argument('-m', '--module', dest='get_app_module', action='store_true', help='Get App module info.')
+    parser.add_argument('-m0', '--Module', dest='get_app_all_module', action='store_true', help='Get App all module info, include all linked dynamic libiray.')
+    parser.add_argument('-m1', '--module', dest='get_app_module', action='store_true', help='Get App module info.')
+    parser.add_argument('-m2', '--msmodule', dest='get_app_ms_module', action='store_true', help='Get App module info.')
     parser.add_argument('-p', '--path', dest='get_app_path', action='store_true', help='Get App path.')
     parser.add_argument('-P', '--Process', dest='get_app_process_info', action='store_true', help='Get App Process Info.')
     args = parser.parse_args()
@@ -115,8 +117,12 @@ if __name__ == '__main__':
         appinfo["base"] = script.exports.appbaseinfo()
     if args.get_app_cookie:
         appinfo["cookies"] = script.exports.cookies()
-    if args.get_app_module:
-        appinfo["module"] = script.exports.moduleinfo()
+    if args.get_app_all_module:
+        appinfo["module"] = script.exports.moduleinfo(0)
+    if args.get_app_module and not args.get_app_all_module:
+        appinfo["module"] = script.exports.moduleinfo(1)
+    if args.get_app_ms_module and not args.get_app_all_module:
+        appinfo["module"] = script.exports.moduleinfo(2)
     if args.get_app_path:
         appinfo["path"] = script.exports.apppathinfo()
     if args.get_app_process_info:

@@ -1,4 +1,5 @@
 import sys
+import os
 import codecs
 import frida
 import json
@@ -105,8 +106,11 @@ if __name__ == '__main__':
     # attach current active application
     session = attach_application(device)
     # attach application by app identifier.
-    # session = attach_application(device, "com.apple.TestFlight") 
-    script = load_script(session, "appinfo.js")
+    # session = attach_application(device, "com.apple.TestFlight")
+    
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    jsfile = os.path.join(script_dir, 'appinfo.js') 
+    script = load_script(session, jsfile)
 
     info: dict = {}
 

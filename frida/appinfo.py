@@ -106,7 +106,7 @@ if __name__ == '__main__':
     session = attach_application(device)
     # attach application by app identifier.
     # session = attach_application(device, "com.apple.TestFlight") 
-    script = load_script(session, "./appinfo.js")
+    script = load_script(session, "appinfo.js")
 
     info: dict = {}
 

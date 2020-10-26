@@ -50,6 +50,8 @@ var _dyld_get_image_vmaddr_slide = exportFunction(
   ["uint"]
 );
 
+var uname = exportFunction("f", "uname", "int", ["pointer"]);
+
 var sysctlbyname = exportFunction("f", "sysctlbyname", "int", [
   "pointer",
   "pointer",
@@ -205,6 +207,7 @@ function getDeviceInfo() {
     hw_cputype: sysctlInt32ValueByName("hw.cputype"),
     hw_cpusubtype: sysctlInt32ValueByName("hw.cpusubtype"),
     hw_memsize: sysctlInt64ValueByName("hw.memsize"),
+    kernel: getSystemInfoByUname()
   };
   return ret;
 }
@@ -348,6 +351,19 @@ function isJailbroken() {
     ret = ret || defaultFileManager.fileExistsAtPath_(element);
   });
   return ret;
+}
+
+function getSystemInfoByUname() {
+  const size = 256;
+  var ptr_utsname = Memory.alloc(size * 5); // new a utsname struct
+  uname(ptr_utsname);
+  return {
+    os_name : ptr_utsname.add(size * 0).readCString(),
+    node_name: ptr_utsname.add(size * 1).readCString(),
+    release: ptr_utsname.add(size * 2).readCString(),
+    version: ptr_utsname.add(size * 3).readCString(),
+    machine_type: ptr_utsname.add(size * 4).readCString(), // typeof machine_type -> string,
+  };
 }
 
 function sysctlStringValueByName(name) {
@@ -755,3 +771,6 @@ rpc.exports = {
   allbundleinfo: getAllBundleInfo,
   deviceinfo: getDeviceInfo,
 };
+
+// var ret = getSystemInfoByUname();
+// console.log(JSON.stringify(ret, null, 2));

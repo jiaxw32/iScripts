@@ -38,6 +38,7 @@ const jailbreakPaths = [
   "/var/lib/cydia",
   "/var/log/syslog",
   "/var/tmp/cydia.log",
+  "/usr/sbin/frida-server",
 ];
 
 Interceptor.attach(Module.findExportByName(null, "getenv"), {

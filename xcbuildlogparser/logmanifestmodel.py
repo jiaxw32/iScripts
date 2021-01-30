@@ -1,3 +1,13 @@
+import json
+from datetime import datetime, timezone, timedelta
+
+def convert_to_unix_timestamp(timeinterval):
+    reference_date = datetime(2001, 1, 1, tzinfo=timezone.utc)
+    # delta = datetime.fromtimestamp(0) - datetime.utcfromtimestamp(0)
+    locat_datetime = reference_date + timedelta(seconds=timeinterval)
+    # s = locat_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.timestamp(locat_datetime)
+
 class LogManifestModel:
     species = "LogManifestModel"
 
@@ -12,6 +22,24 @@ class LogManifestModel:
         self._classname = None
         self._signature = None
         self._duration = 0
+        self._original_logs = None
+    
+    @staticmethod
+    def model_with_dic(data):
+        model = LogManifestModel()
+        model.filename = data["fileName"]
+        model.title = data["title"]
+        model.identifier = data["uniqueIdentifier"]
+        model.scheme = data["schemeIdentifier-schemeName"]
+        starttime = data["timeStartedRecording"]
+        endtime = data["timeStoppedRecording"]
+        model.duration = endtime - starttime
+        model.begintime = convert_to_unix_timestamp(starttime)
+        model.endtime = convert_to_unix_timestamp(endtime)
+        model.classname = data["className"]
+        model.signature = data["signature"]
+        model.original_logs = json.dumps(data)
+        return model
     
     @property
     def filepath(self):
@@ -92,5 +120,11 @@ class LogManifestModel:
     @duration.setter
     def duration(self, value):
         self._duration = value
-
-
+    
+    @property
+    def original_logs(self):
+        return self._original_logs
+    
+    @original_logs.setter
+    def original_logs(self, value):
+        self._original_logs = value

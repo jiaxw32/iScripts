@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-logfile="${PROJECT_DIR}/XCBuildLogParser/post-action.log"
+# dir = $PROJECT_DIR
+# parentdir=$(dirname "$dir")
+
+workspace="$HOME/XCBuildLogParser"
+logfile="${workspace}/post-action.log"
 if [[ -e $logfile ]]; then
   rm $logfile
 fi

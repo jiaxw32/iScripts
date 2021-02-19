@@ -130,3 +130,5 @@ dmypy.json
 
 # 
 personal/block.txt
+WeChatWordCloud/images_old/
+WeChatWordCloud/sqlitedb/

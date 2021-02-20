@@ -1,23 +1,43 @@
-// trace -[AWECommentPanelCell configWithComment:] method
-if (ObjC.available && ("AWECommentPanelCell" in ObjC.classes)) {
-    var AWECommentPanelCell = ObjC.classes.AWECommentPanelCell;
 
-    var configWithComment_ = AWECommentPanelCell["- configWithComment:"];
-    if (typeof configWithComment_ == 'undefined') {
-        console.log('method -[AWECommentPanelCell configWithComment:] not found.');
-    } else {
-        Interceptor.attach(configWithComment_.implementation, {
-            onEnter: function (args, state) {
-                var model = new ObjC.Object(args[2]);
-                var desc = model["- _ivarDescription"]();
-                console.log(`-[AWECommentPanelCell configWithComment:${args[2]}]\n`, desc.toString());
-            },
-        });
+if (ObjC.available) {
+    // trace -[AWECommentPanelCell configWithComment:] method
+    if ("AWECommentPanelCell" in ObjC.classes) {
+        var AWECommentPanelCell = ObjC.classes.AWECommentPanelCell;
+
+        var configWithComment_ = AWECommentPanelCell["- configWithComment:"];
+        if (typeof configWithComment_ == 'undefined') {
+            console.log('method -[AWECommentPanelCell configWithComment:] not found.');
+        } else {
+            Interceptor.attach(configWithComment_.implementation, {
+                onEnter: function (args, state) {
+                    var model = new ObjC.Object(args[2]);
+                    var desc = model["- _ivarDescription"]();
+                    console.log(`-[AWECommentPanelCell configWithComment:${args[2]}]\n`, desc.toString());
+                },
+            });
+        }
+    }
+
+    // -[AWECommentPanelBaseCell displayTimeText]
+    if ("AWECommentPanelBaseCell" in ObjC.classes) {
+        var AWECommentPanelBaseCell = ObjC.classes.AWECommentPanelBaseCell;
+        var displayTimeText = AWECommentPanelBaseCell["- displayTimeText"];
+
+        if (typeof displayTimeText == 'undefined') {
+            console.log('method -[AWECommentPanelBaseCell displayTimeText] not found.');
+        } else {
+            Interceptor.attach(displayTimeText.implementation, {
+                onLeave(retval) {
+                    var ret = new ObjC.Object(retval);
+                    console.log(`-[AWECommentPanelBaseCell displayTimeText]`, ret.toString());
+                }
+            });
+        }
     }
 }
 
 /*
-输出结果如下：
+-[AWECommentPanelCell configWithComment:] 输出结果如下：
 ================================================================================
 [iPhone::抖音]-> -[AWECommentPanelCell configWithComment:0x12c1152c0]
  <AWECommentModel: 0x12c1152c0>:

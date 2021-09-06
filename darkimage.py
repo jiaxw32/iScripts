@@ -20,8 +20,7 @@ def create_worksheet(workbook):
         ('filename', 60),
         ('filepath', 200),
         ('filesize', 12),
-        ('scale', 10),
-        ('include_dark', 10),
+        ('scale', 10)
     ]
     idx = 0
     for header in headers:
@@ -71,11 +70,7 @@ if __name__ == "__main__":
     worksheet = create_worksheet(workbook)
 
     def search_darkimage_handler(row: int, pod: str, imagefile: str, scale: str):
-        imagename = os.path.basename(imagefile)
-        flag = 0
-        if '-dark' in imagename or '_dark' in imagename:
-            flag = 1
-        
+        imagename = os.path.basename(imagefile)        
         imagesize = os.path.getsize(imagefile)
         subpath = imagefile[len(wbdir):]
         # insert row data
@@ -84,7 +79,6 @@ if __name__ == "__main__":
         worksheet.write(row, 2, subpath)
         worksheet.write_number(row, 3, imagesize)
         worksheet.write(row, 4, scale)
-        worksheet.write(row, 5, flag)
         # copy image to dest dir
         dstdir = os.path.join(destdir, pod)
         if not os.path.exists(dstdir):
